@@ -17,7 +17,7 @@ const AppHeader = ({ navigateTo }) => (
         <div className="header-top-bar">
              <div className="logo-title">
                 <img src="https://i.imgur.com/8f1CRaE.png" alt="Health Station Logo" className="logo" />
-                <h2>"Health Station @ ชุมพร"</h2>
+                <h2>"Health Station @ ท่าแซะ"</h2>
             </div>
         </div>
         <div className="header-nav-bar">
@@ -38,7 +38,7 @@ const AppHeader = ({ navigateTo }) => (
 
 const AppFooter = () => (
     <footer className="app-footer">
-        <p>สงวนลิขสิทธิ์ © 2024 สำนักงานสาธารณสุขจังหวัดชุมพร</p>
+        <p>สงวนลิขสิทธิ์ © 2025  Health Station @ สาสุขท่าแซะ</p>
     </footer>
 );
 
