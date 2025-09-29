@@ -1,20 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createClient } from '@supabase/supabase-js';
 
 // --- Supabase Client Setup ---
-// !!! สำคัญ: กรุณาเปลี่ยนค่าเหล่านี้เป็น URL และ Key ของโปรเจกต์ Supabase ของคุณ
-const supabaseUrl = 'YOUR_SUPABASE_URL'; // ใส่ Supabase URL ของคุณที่นี่
-const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY'; // ใส่ Anon Key ของคุณที่นี่
+// ได้ทำการตั้งค่า Supabase URL และ Key ตามที่ผู้ใช้ให้มาเรียบร้อยแล้ว
+const supabaseUrl = 'https://fvczvzmgyxcjamibrubit.supabase.co'; 
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2Y3p2em1neGNqYW1pYnJ1cGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxMjE2MDUsImV4cCI6MjA3NDY5NzYwNX0.tk7AQrusK8mco8MsF0Fuo-BE3gH7gWSfzFBmlnxHKEk';
 
-// ตรวจสอบว่าผู้ใช้ได้ใส่ค่า URL และ Key แล้วหรือยัง
-if (supabaseUrl === 'YOUR_SUPABASE_URL' || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY') {
-    const errorMsg = 'กรุณาตั้งค่า Supabase URL และ Anon Key ในไฟล์ index.tsx ก่อนเริ่มใช้งาน';
-    // แสดงข้อความบนหน้าจอ
-    document.body.innerHTML = `<div style="padding: 2rem; text-align: center; font-family: Kanit, sans-serif; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 8px; margin: 2rem;"><h2>ข้อผิดพลาดในการตั้งค่า</h2><p>${errorMsg}</p></div>`;
-    throw new Error(errorMsg);
-}
-
+// FIX: Removed an obsolete check for placeholder Supabase credentials.
+// Since the credentials are hardcoded as constants, TypeScript infers their literal types,
+// causing an error when comparing them to different string literals. This check is no longer needed.
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 
@@ -585,17 +581,17 @@ const AdminDashboard = ({ navigateTo }) => (
                     </div>
                     <div className="admin-card-body">
                         <p>1,234</p>
-                        <span>ผู้ใช้งานในระบบ</span>
+                        <span>ผู้ใช้ในระบบ</span>
                     </div>
                 </div>
                 <div className="admin-card-footer">
-                    <a href="#" onClick={e => {e.preventDefault(); navigateTo(PAGES.ADMIN_USER_MANAGEMENT)}}>เข้าดู</a>
+                    <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_USER_MANAGEMENT); }}>จัดการ →</a>
                 </div>
             </div>
             <div className="admin-card">
-                 <div>
+                <div>
                     <div className="admin-card-header">
-                        <div className="icon"><i className="fa-solid fa-location-dot"></i></div>
+                        <div className="icon"><i className="fa-solid fa-map-location-dot"></i></div>
                         <h3>การจัดการ Health Station</h3>
                     </div>
                     <div className="admin-card-body">
@@ -603,12 +599,12 @@ const AdminDashboard = ({ navigateTo }) => (
                         <span>จุดบริการ</span>
                     </div>
                 </div>
-                <div className="admin-card-footer">
-                    <a href="#" onClick={e => {e.preventDefault(); navigateTo(PAGES.ADMIN_HEALTH_STATION_MANAGEMENT)}}>เข้าดู</a>
+                 <div className="admin-card-footer">
+                    <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_HEALTH_STATION_MANAGEMENT); }}>จัดการ →</a>
                 </div>
             </div>
             <div className="admin-card">
-                 <div>
+                <div>
                     <div className="admin-card-header">
                         <div className="icon"><i className="fa-solid fa-file-lines"></i></div>
                         <h3>ทะเบียนการคัดกรอง</h3>
@@ -618,155 +614,198 @@ const AdminDashboard = ({ navigateTo }) => (
                         <span>รายการ</span>
                     </div>
                 </div>
-                <div className="admin-card-footer">
-                     <a href="#" onClick={e => {e.preventDefault(); navigateTo(PAGES.ADMIN_SCREENING_BMI)}}>เข้าดู</a>
+                 <div className="admin-card-footer">
+                    <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_SCREENING_BMI); }}>จัดการ →</a>
                 </div>
             </div>
-            <div className="admin-card">
-                 <div>
+             <div className="admin-card">
+                <div>
                     <div className="admin-card-header">
                         <div className="icon"><i className="fa-solid fa-chart-line"></i></div>
                         <h3>รายงาน</h3>
                     </div>
                     <div className="admin-card-body">
                         <p>25</p>
-                        <span>รายการ</span>
+                        <span>รายงานสรุป</span>
                     </div>
                 </div>
-                <div className="admin-card-footer">
-                     <a href="#" onClick={e => {e.preventDefault(); navigateTo(PAGES.ADMIN_REPORTS)}}>เข้าดู</a>
+                 <div className="admin-card-footer">
+                    <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_REPORTS); }}>จัดการ →</a>
                 </div>
             </div>
         </div>
     </>
 );
 
-const ScreeningPage = ({ navigateTo, pageKey, title }) => (
-    <div>
+const AdminScreeningLayout = ({ navigateTo, activeTab, children, onTabClick }) => (
+    <>
+        <div className="admin-tabs">
+            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_BMI)} className={activeTab === PAGES.ADMIN_SCREENING_BMI ? 'active' : ''}>ดัชนีมวลกาย</button>
+            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_WAIST)} className={activeTab === PAGES.ADMIN_SCREENING_WAIST ? 'active' : ''}>รอบเอว</button>
+            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_BP)} className={activeTab === PAGES.ADMIN_SCREENING_BP ? 'active' : ''}>ความดันโลหิต</button>
+            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_SUGAR)} className={activeTab === PAGES.ADMIN_SCREENING_SUGAR ? 'active' : ''}>น้ำตาลในเลือด</button>
+            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_SMOKING)} className={activeTab === PAGES.ADMIN_SCREENING_SMOKING ? 'active' : ''}>การสูบบุหรี่</button>
+            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_ALCOHOL)} className={activeTab === PAGES.ADMIN_SCREENING_ALCOHOL ? 'active' : ''}>การดื่มสุรา</button>
+            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_DEPRESSION)} className={activeTab === PAGES.ADMIN_SCREENING_DEPRESSION ? 'active' : ''}>ภาวะซึมเศร้า</button>
+        </div>
         <div className="table-toolbar">
             <div className="search-filter">
                 <input type="text" placeholder="ค้นหา..."/>
-                <select><option>ทั้งหมด</option></select>
-                <button className="btn btn-outline" style={{padding: '0.5rem 1rem'}}><i className="fa-solid fa-filter"></i> กรอง</button>
+                <button className="btn"><i className="fa-solid fa-filter"></i> กรอง</button>
             </div>
-            <div>
-                 <button className="btn btn-secondary" style={{padding: '0.5rem 1rem', marginRight: '0.5rem'}}><i className="fa-solid fa-download"></i> ส่งออก</button>
-                 <button className="btn btn-primary" style={{padding: '0.5rem 1rem'}}><i className="fa-solid fa-plus"></i> เพิ่มใหม่</button>
-            </div>
+            <button className="btn btn-primary"><i className="fa-solid fa-plus"></i> เพิ่มใหม่</button>
         </div>
-        <p>แสดงตารางข้อมูลสำหรับ {title}...</p>
-        {/* Actual table would be rendered here */}
+        {children}
+        <div className="pagination">
+            <button className="btn btn-outline">&lt; ก่อนหน้า</button>
+            <button className="btn btn-primary">1</button>
+            <button className="btn btn-outline">2</button>
+            <button className="btn btn-outline">ถัดไป &gt;</button>
+        </div>
+    </>
+);
+
+const AdminScreeningBmi = () => (
+    <div className="table-responsive">
+        <table className="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>วันที่คัดกรอง</th>
+                    <th>ชื่อ-สกุล</th>
+                    <th>เลขประจำตัวประชาชน</th>
+                    <th>น้ำหนัก</th>
+                    <th>ส่วนสูง</th>
+                    <th>BMI</th>
+                    <th>การแปลผล</th>
+                    <th>สถานี</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td><td>2568-09-22</td><td>นางนูรียะห์ สะนี</td><td>1900300012381</td><td>53</td><td>154</td><td>22.35</td><td><span className="status status-normal">ร่างกายสมส่วน</span></td><td>@สมานมิตร</td>
+                    <td className="table-actions"><button><i className="fa-solid fa-trash"></i></button></td>
+                </tr>
+                 <tr>
+                    <td>2</td><td>2568-09-22</td><td>นางสาวพัชรกร เกตุนวล</td><td>3860200467775</td><td>50</td><td>152</td><td>21.64</td><td><span className="status status-normal">ร่างกายสมส่วน</span></td><td>@สมานมิตร</td>
+                    <td className="table-actions"><button><i className="fa-solid fa-trash"></i></button></td>
+                </tr>
+                <tr>
+                    <td>3</td><td>2535-09-11</td><td>นางสาวจันทิมา สิงหนาท</td><td>1860200083334</td><td>73</td><td>152</td><td>31.6</td><td><span className="status status-risk">อ้วนอันตราย</span></td><td>@สมานมิตร</td>
+                    <td className="table-actions"><button><i className="fa-solid fa-trash"></i></button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+);
+
+const AdminScreeningWaist = () => (
+    <div className="table-responsive">
+        <table className="data-table">
+             <thead>
+                <tr><th>#</th><th>วันที่คัดกรอง</th><th>ชื่อ-สกุล</th><th>รอบเอว</th><th>การแปลผล</th><th>สถานี</th><th></th></tr>
+            </thead>
+             <tbody>
+                <tr><td>1</td><td>2568-09-22</td><td>นางนูรียะห์ สะนี</td><td>75</td><td><span className="status status-normal">ไม่เกินเกณฑ์</span></td><td>@สมานมิตร</td><td className="table-actions"><button><i className="fa-solid fa-trash"></i></button></td></tr>
+                <tr><td>2</td><td>2568-09-22</td><td>นางสาวพัชรกร เกตุนวล</td><td>78</td><td><span className="status status-over">เกินเกณฑ์</span></td><td>@สมานมิตร</td><td className="table-actions"><button><i className="fa-solid fa-trash"></i></button></td></tr>
+            </tbody>
+        </table>
+    </div>
+);
+
+// Admin layout component
+const AdminLayout = ({ children, title, navigateTo }) => (
+    <div className="admin-layout">
+        <header className="admin-header">
+            <div>
+                 <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_DASHBOARD); }} style={{fontSize: '0.9rem', color: 'var(--text-light-color)'}}>
+                    <i className="fa-solid fa-arrow-left"></i> กลับหน้าหลัก
+                </a>
+                <h1>{title}</h1>
+            </div>
+            <button className="btn btn-primary"><i className="fa-solid fa-plus"></i> เพิ่มใหม่</button>
+        </header>
+        <main className="admin-main">
+            {children}
+        </main>
     </div>
 );
 
 
-const AdminLayout = ({ navigateTo, currentPage }) => {
-    const [mainTab, setMainTab] = useState('management');
-    const [screeningTab, setScreeningTab] = useState(PAGES.ADMIN_SCREENING_BMI);
-    
-    const renderContent = () => {
-        if (mainTab === 'management') {
-            return <AdminDashboard navigateTo={navigateTo} />;
-        }
-        if (mainTab === 'screening') {
-            return (
-                <div>
-                     <div className="admin-tabs">
-                        <button className={screeningTab === PAGES.ADMIN_SCREENING_BMI ? 'active' : ''} onClick={() => setScreeningTab(PAGES.ADMIN_SCREENING_BMI)}>ดัชนีมวลกาย</button>
-                        <button className={screeningTab === PAGES.ADMIN_SCREENING_WAIST ? 'active' : ''} onClick={() => setScreeningTab(PAGES.ADMIN_SCREENING_WAIST)}>รอบเอว</button>
-                        <button className={screeningTab === PAGES.ADMIN_SCREENING_BP ? 'active' : ''} onClick={() => setScreeningTab(PAGES.ADMIN_SCREENING_BP)}>ความดันโลหิต</button>
-                        <button className={screeningTab === PAGES.ADMIN_SCREENING_SUGAR ? 'active' : ''} onClick={() => setScreeningTab(PAGES.ADMIN_SCREENING_SUGAR)}>น้ำตาลในเลือด</button>
-                        {/* More screening tabs */}
-                    </div>
-                    {screeningTab === PAGES.ADMIN_SCREENING_BMI && <ScreeningPage navigateTo={navigateTo} pageKey="bmi" title="ดัชนีมวลกาย" />}
-                    {screeningTab === PAGES.ADMIN_SCREENING_WAIST && <ScreeningPage navigateTo={navigateTo} pageKey="waist" title="รอบเอว" />}
-                    {screeningTab === PAGES.ADMIN_SCREENING_BP && <ScreeningPage navigateTo={navigateTo} pageKey="bp" title="ความดันโลหิต" />}
-                    {screeningTab === PAGES.ADMIN_SCREENING_SUGAR && <ScreeningPage navigateTo={navigateTo} pageKey="sugar" title="น้ำตาลในเลือด" />}
-                </div>
-            );
-        }
-    };
-    
-    // This is a simplified version. A real implementation would have separate components.
-    const renderAdminPage = () => {
-        switch(currentPage) {
-            case PAGES.ADMIN_DASHBOARD:
-                return <AdminDashboard navigateTo={navigateTo} />;
-            case PAGES.ADMIN_SCREENING_BMI:
-            case PAGES.ADMIN_SCREENING_WAIST:
-            case PAGES.ADMIN_SCREENING_BP:
-            case PAGES.ADMIN_SCREENING_SUGAR:
-                 return <ScreeningPage navigateTo={navigateTo} pageKey="bmi" title="ทะเบียนการคัดกรอง" />;
-            // Add other admin pages here
-            default:
-                return <AdminDashboard navigateTo={navigateTo} />;
-        }
-    }
-
-
-    return (
-        <div className="container">
-            <div className="admin-layout">
-                <header className="admin-header">
-                    <h1>ระบบการคัดกรองสุขภาพ</h1>
-                     <button className="btn btn-outline" onClick={() => navigateTo(PAGES.HOME)}>กลับหน้าหลัก</button>
-                </header>
-                <main className="admin-main">
-                    <div className="admin-tabs">
-                        <button className={mainTab === 'management' ? 'active' : ''} onClick={() => setMainTab('management')}>เมนูจัดการ</button>
-                        <button className={mainTab === 'screening' ? 'active' : ''} onClick={() => setMainTab('screening')}>ทะเบียนการคัดกรอง</button>
-                    </div>
-                    {renderContent()}
-                </main>
-            </div>
-        </div>
-    );
-}
-
-
 // --- Main App Component ---
-
 const App = () => {
     const [currentPage, setCurrentPage] = useState(PAGES.HOME);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [adminScreeningTab, setAdminScreeningTab] = useState(PAGES.ADMIN_SCREENING_BMI);
     
     const navigateTo = (page) => {
-        setCurrentPage(page);
         window.scrollTo(0, 0);
+        setCurrentPage(page);
     };
-    
+
     const handleLogin = () => {
         setIsLoggedIn(true);
         navigateTo(PAGES.ADMIN_DASHBOARD);
     };
-
+    
     const handleLogout = () => {
         setIsLoggedIn(false);
         navigateTo(PAGES.HOME);
     };
 
+    const handleAdminScreeningTabClick = (tab) => {
+        setAdminScreeningTab(tab);
+        navigateTo(tab);
+    }
+    
     const renderPage = () => {
-        if (isLoggedIn) {
-             return <AdminLayout navigateTo={navigateTo} currentPage={currentPage} />;
-        }
-        
-        switch (currentPage) {
-            case PAGES.CARB_COUNTER: return <CarbCounterPage navigateTo={navigateTo} />;
-            case PAGES.KNOWLEDGE_ASSESSMENT: return <KnowledgeAssessmentPage navigateTo={navigateTo} />;
-            case PAGES.IS_IT_TRUE_DOCTOR: return <IsItTrueDoctorPage navigateTo={navigateTo} />;
-            case PAGES.INNOVATION_ASSESSMENT: return <InnovationAssessmentPage navigateTo={navigateTo} />;
-            case PAGES.KNOWLEDGE_BASE: return <KnowledgeBasePage navigateTo={navigateTo} />;
-            case PAGES.LOGIN: return <LoginPage navigateTo={navigateTo} handleLogin={handleLogin} />;
-            case PAGES.REGISTER: return <RegisterPage navigateTo={navigateTo} />;
-            case PAGES.HOME:
-            default:
-                return <HomePage navigateTo={navigateTo} />;
+        if (!isLoggedIn) {
+            switch (currentPage) {
+                case PAGES.HOME: return <HomePage navigateTo={navigateTo} />;
+                case PAGES.CARB_COUNTER: return <CarbCounterPage navigateTo={navigateTo} />;
+                case PAGES.KNOWLEDGE_ASSESSMENT: return <KnowledgeAssessmentPage navigateTo={navigateTo} />;
+                case PAGES.IS_IT_TRUE_DOCTOR: return <IsItTrueDoctorPage navigateTo={navigateTo} />;
+                case PAGES.INNOVATION_ASSESSMENT: return <InnovationAssessmentPage navigateTo={navigateTo} />;
+                case PAGES.KNOWLEDGE_BASE: return <KnowledgeBasePage navigateTo={navigateTo} />;
+                case PAGES.LOGIN: return <LoginPage navigateTo={navigateTo} handleLogin={handleLogin}/>;
+                case PAGES.REGISTER: return <RegisterPage navigateTo={navigateTo} />;
+                default: return <HomePage navigateTo={navigateTo} />;
+            }
+        } else {
+             // Logged in user routing
+            switch (currentPage) {
+                case PAGES.ADMIN_DASHBOARD:
+                    return (
+                        <AdminLayout title="เมนูจัดการ" navigateTo={navigateTo}>
+                            <AdminDashboard navigateTo={navigateTo} />
+                        </AdminLayout>
+                    );
+                case PAGES.ADMIN_SCREENING_BMI:
+                case PAGES.ADMIN_SCREENING_WAIST:
+                case PAGES.ADMIN_SCREENING_BP:
+                case PAGES.ADMIN_SCREENING_SUGAR:
+                case PAGES.ADMIN_SCREENING_SMOKING:
+                case PAGES.ADMIN_SCREENING_ALCOHOL:
+                case PAGES.ADMIN_SCREENING_DEPRESSION:
+                     return (
+                        <AdminLayout title="ทะเบียนการคัดกรอง" navigateTo={navigateTo}>
+                            <AdminScreeningLayout navigateTo={navigateTo} activeTab={adminScreeningTab} onTabClick={handleAdminScreeningTabClick}>
+                                {adminScreeningTab === PAGES.ADMIN_SCREENING_BMI && <AdminScreeningBmi />}
+                                {adminScreeningTab === PAGES.ADMIN_SCREENING_WAIST && <AdminScreeningWaist />}
+                                {/* Add other screening components here */}
+                            </AdminScreeningLayout>
+                        </AdminLayout>
+                    );
+                default:
+                    return <HomePage navigateTo={navigateTo} />;
+            }
         }
     };
 
     return (
         <>
-            <AppHeader navigateTo={navigateTo} isLoggedIn={isLoggedIn} handleLogout={handleLogout} />
+            <AppHeader navigateTo={navigateTo} isLoggedIn={isLoggedIn} handleLogout={handleLogout}/>
             <main>
                 {renderPage()}
             </main>
@@ -776,8 +815,4 @@ const App = () => {
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-    <React.StrictMode>
-        <App />
-    </React.StrictMode>
-);
+root.render(<App />);
