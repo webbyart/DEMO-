@@ -77,7 +77,7 @@ const AppHeader = ({ navigateTo, isLoggedIn, handleLogout }) => (
 
 const AppFooter = () => (
     <footer className="app-footer">
-        <p>สงวนลิขสิทธิ์ © 2024 สำนักงานสาธารณสุขจังหวัดชุมพร | พัฒนาระบบโดย Health Station @ ท่าแซะ</p>
+        <p>สงวนลิขสิทธิ์ © 2025 สำนักงานสาธารณสุขอำเภอท่าแซะครั | พัฒนาระบบโดย Health Station @ ท่าแซะ </p>
     </footer>
 );
 
