@@ -1,16 +1,16 @@
 
+
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createClient } from '@supabase/supabase-js';
 
 // --- Supabase Client Setup ---
-// ได้ทำการตั้งค่า Supabase URL และ Key ตามที่ผู้ใช้ให้มาเรียบร้อยแล้ว
+// NOTE FOR USER: The "TypeError: Failed to fetch" error is a CORS issue.
+// You MUST configure CORS in your Supabase project settings.
+// Go to Project Settings > API > CORS Configuration and add your app's URL.
 const supabaseUrl = 'https://fvczvzmgyxcjamibrubit.supabase.co'; 
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2Y3p2em1neGNqYW1pYnJ1cGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxMjE2MDUsImV4cCI6MjA3NDY5NzYwNX0.tk7AQrusK8mco8MsF0Fuo-BE3gH7gWSfzFBmlnxHKEk';
 
-// FIX: Removed an obsolete check for placeholder Supabase credentials.
-// Since the credentials are hardcoded as constants, TypeScript infers their literal types,
-// causing an error when comparing them to different string literals. This check is no longer needed.
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 
@@ -104,7 +104,7 @@ const AppHeader = ({ navigateTo, isLoggedIn, handleLogout }) => (
 
 const AppFooter = () => (
     <footer className="app-footer">
-        <p>สงวนลิขสิทธิ์ © 2024 สำนักงานสาธารณสุขจังหวัดชุมพร | พัฒนาระบบโดย Health Station @ ท่าแซะ</p>
+        <p>สงวนลิขสิทธิ์ © 2025 สำนักงานสาธารณสุขอำเภอท่าแซะ | พัฒนาระบบโดย Health Station @ ท่าแซะ</p>
     </footer>
 );
 
@@ -292,7 +292,7 @@ const CarbCounterPage = ({ navigateTo }) => {
 
         if (error) {
             console.error('Error inserting data:', error);
-            alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message);
+            alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (error.message || JSON.stringify(error)));
         } else {
             alert('บันทึกข้อมูลสำเร็จ!');
             setFormData({ // Reset form
@@ -396,7 +396,7 @@ const KnowledgeAssessmentPage = ({ navigateTo }) => {
         setIsSubmitting(false);
         if (error) {
             console.error('Error submitting assessment:', error);
-            alert('เกิดข้อผิดพลาดในการส่งแบบประเมิน: ' + error.message);
+            alert('เกิดข้อผิดพลาดในการส่งแบบประเมิน: ' + (error.message || JSON.stringify(error)));
         } else {
             alert('ส่งแบบประเมินสำเร็จ!');
             navigateTo(PAGES.HOME);
@@ -531,7 +531,7 @@ const InnovationAssessmentPage = ({ navigateTo }) => {
 
         if (error) {
             console.error('Error submitting innovation assessment:', error);
-            alert('เกิดข้อผิดพลาดในการส่งแบบประเมิน: ' + error.message);
+            alert('เกิดข้อผิดพลาดในการส่งแบบประเมิน: ' + (error.message || JSON.stringify(error)));
         } else {
             alert('ขอบคุณสำหรับความคิดเห็น! ส่งแบบประเมินสำเร็จ');
             navigateTo(PAGES.HOME);
@@ -699,7 +699,7 @@ const RegisterPage = ({ navigateTo }) => {
 
         if (error) {
             console.error('Registration error:', error);
-            alert('เกิดข้อผิดพลาดในการลงทะเบียน: ' + error.message);
+            alert('เกิดข้อผิดพลาดในการลงทะเบียน: ' + (error.message || JSON.stringify(error)));
         } else {
             alert('ลงทะเบียนสำเร็จ! กรุณารอการตรวจสอบจากผู้ดูแลระบบ');
             navigateTo(PAGES.LOGIN);
@@ -1186,17 +1186,15 @@ const GenericAdminPage = ({
         setLoading(true);
         let query = supabase.from(tableName).select('*').order('created_at', { ascending: false });
 
-        // Apply filters
         if (filters.search) {
-            query = query.ilike('full_name', `%${filters.search}%`);
+            query = query.or(`full_name.ilike.%${filters.search}%,id_card.ilike.%${filters.search}%`);
         }
-        // Add other filters as needed...
-
+        
         const { data, error } = await query;
         
         if (error) {
             console.error(`Error fetching ${tableName}:`, error);
-            alert(`ไม่สามารถโหลดข้อมูลได้: ${error.message}`);
+            alert(`ไม่สามารถโหลดข้อมูลได้: ${error.message || JSON.stringify(error)}`);
         } else {
             setData(data);
         }
@@ -1205,7 +1203,7 @@ const GenericAdminPage = ({
 
     useEffect(() => {
         fetchData();
-    }, [filters]); // Refetch when filters change
+    }, []); 
 
     const handleDelete = async (id) => {
         if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?')) {
@@ -1231,12 +1229,11 @@ const GenericAdminPage = ({
         <>
             <div className="table-toolbar">
                 <div className="search-filter">
-                    <input type="text" name="search" placeholder="ค้นหา ชื่อ-สกุล..." onChange={handleFilterChange}/>
-                    {/* Add more filter inputs here */}
+                    <input type="text" name="search" placeholder="ค้นหา ชื่อ-สกุล, เลข ปชช..." onChange={handleFilterChange}/>
                     <input type="date" name="startDate" onChange={handleFilterChange} />
                     <span>ถึง</span>
                     <input type="date" name="endDate" onChange={handleFilterChange} />
-                    <button className="btn" onClick={fetchData}><i className="fa-solid fa-filter"></i> กรอง</button>
+                    <button className="btn" onClick={fetchData}><i className="fa-solid fa-search"></i> ค้นหา</button>
                 </div>
                 {addPage && (
                     <button className="btn btn-primary" onClick={() => navigateTo(addPage)}>
@@ -1252,7 +1249,7 @@ const GenericAdminPage = ({
                         </tr>
                     </thead>
                     <tbody>
-                        {data.map((item, index) => renderRow(item, index, handleDelete))}
+                        {data.length > 0 ? data.map((item, index) => renderRow(item, index, handleDelete)) : <tr><td colSpan={columns.length} style={{textAlign: 'center'}}>ไม่พบข้อมูล</td></tr>}
                     </tbody>
                 </table>
             </div>
@@ -1343,103 +1340,239 @@ const AdminInnovationAssessmentResults = (props) => (
     />
 );
 
-// --- New Add Screening Forms ---
-const GenericAddScreeningPage = ({ navigateTo, tableName, successPage, formFields, pageTitle }) => {
-    const [formData, setFormData] = useState({
-        screening_date: new Date().toISOString().split('T')[0],
-        title: '',
-        full_name: '',
-        id_card: '',
-        station: '',
-        ...Object.fromEntries(formFields.map(f => [f.id, f.defaultValue || '']))
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleInputChange = (e) => {
-        const { id, value } = e.target;
-        setFormData({ ...formData, [id]: value });
-    };
+// --- Specific Add Screening Forms with Logic ---
+
+const ScreeningFormLayout = ({ navigateTo, successPage, handleSubmit, isSubmitting, pageTitle, children, handleInputChange, formData }) => (
+     <div className="page-container" style={{maxWidth: '800px', margin: '0 auto'}}>
+        <form onSubmit={handleSubmit}>
+            <h2 className="form-section-header">ข้อมูลผู้รับการคัดกรอง</h2>
+            <div className="form-grid">
+                <div className="form-group"><label className="required">วันที่คัดกรอง</label><input type="date" id="screening_date" value={formData.screening_date} onChange={handleInputChange} required /></div>
+                <div className="form-group"><label className="required">คำนำหน้า</label><select id="title" value={formData.title} onChange={handleInputChange} required><option value="">--เลือก--</option><option>นาย</option><option>นาง</option><option>นางสาว</option></select></div>
+                <div className="form-group"><label className="required">ชื่อ-สกุล</label><input type="text" id="full_name" value={formData.full_name} onChange={handleInputChange} required /></div>
+                <div className="form-group"><label>เลขประจำตัวประชาชน</label><input type="text" id="id_card" value={formData.id_card} onChange={handleInputChange} /></div>
+                <div className="form-group"><label className="required">สถานีที่คัดกรอง</label><input type="text" id="station" value={formData.station} onChange={handleInputChange} required /></div>
+            </div>
+            <h2 className="form-section-header">{pageTitle}</h2>
+            {children}
+            <div className="form-actions">
+                <button type="button" className="btn btn-outline" onClick={() => navigateTo(successPage)}>ยกเลิก</button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                    {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                </button>
+            </div>
+        </form>
+    </div>
+);
+
+const AdminAddScreeningBmiPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({ screening_date: new Date().toISOString().split('T')[0], title: '', full_name: '', id_card: '', station: '', weight: '', height: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
-        // Add specific calculation logic here before insert if needed
-        const { error } = await supabase.from(tableName).insert([formData]);
+
+        const heightM = parseFloat(formData.height) / 100;
+        const weightKg = parseFloat(formData.weight);
+        // FIX: Calculate BMI as a number for comparison to avoid type errors.
+        const bmiValue = weightKg / (heightM * heightM);
+        const bmi = bmiValue.toFixed(2);
+        let interpretation = '';
+        if (bmiValue < 18.5) interpretation = 'ผอม';
+        else if (bmiValue < 23) interpretation = 'ร่างกายสมส่วน';
+        else if (bmiValue < 25) interpretation = 'ท้วม';
+        else if (bmiValue < 30) interpretation = 'อ้วน หรือ โรคอ้วนระดับที่ 2';
+        else interpretation = 'อ้วนอันตราย หรือ โรคอ้วนระดับที่ 3';
+
+        const dataToInsert = { ...formData, bmi, interpretation, weight: weightKg, height: parseFloat(formData.height) };
+        const { error } = await supabase.from('screening_bmi').insert([dataToInsert]);
         setIsSubmitting(false);
 
-        if (error) {
-            alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`);
-        } else {
-            alert('บันทึกข้อมูลสำเร็จ!');
-            navigateTo(successPage);
-        }
+        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
+        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_BMI); }
     };
-    
+
     return (
-        <div className="page-container" style={{maxWidth: '800px', margin: '0 auto'}}>
-            <form onSubmit={handleSubmit}>
-                <h2 className="form-section-header">ข้อมูลผู้รับการคัดกรอง</h2>
-                <div className="form-grid">
-                    <div className="form-group"><label className="required">วันที่คัดกรอง</label><input type="date" id="screening_date" value={formData.screening_date} onChange={handleInputChange} required /></div>
-                    <div className="form-group"><label className="required">คำนำหน้า</label><select id="title" value={formData.title} onChange={handleInputChange} required><option value="">--เลือก--</option><option>นาย</option><option>นาง</option><option>นางสาว</option></select></div>
-                    <div className="form-group"><label className="required">ชื่อ-สกุล</label><input type="text" id="full_name" value={formData.full_name} onChange={handleInputChange} required /></div>
-                    <div className="form-group"><label>เลขประจำตัวประชาชน</label><input type="text" id="id_card" value={formData.id_card} onChange={handleInputChange} /></div>
-                    <div className="form-group"><label className="required">สถานีที่คัดกรอง</label><input type="text" id="station" value={formData.station} onChange={handleInputChange} required /></div>
-                </div>
-                <h2 className="form-section-header">{pageTitle}</h2>
-                <div className="form-grid">
-                {formFields.map(field => (
-                    <div className="form-group" key={field.id} style={field.fullWidth ? {gridColumn: '1 / -1'} : {}}>
-                        <label className={field.required ? 'required' : ''}>{field.label}</label>
-                        {field.type === 'select' ? (
-                             <select id={field.id} value={formData[field.id]} onChange={handleInputChange} required={field.required}>
-                                {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                            </select>
-                        ) : (
-                            <input type={field.type || 'text'} id={field.id} value={formData[field.id]} onChange={handleInputChange} required={field.required} />
-                        )}
-                    </div>
-                ))}
-                </div>
-                 <div className="form-actions">
-                    <button type="button" className="btn btn-outline" onClick={() => navigateTo(successPage)}>ยกเลิก</button>
-                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                        {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
-                    </button>
-                </div>
-            </form>
-        </div>
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_BMI} pageTitle="ข้อมูลดัชนีมวลกาย">
+            <div className="form-grid">
+                <div className="form-group"><label className="required">น้ำหนัก (kg)</label><input type="number" id="weight" value={formData.weight} onChange={handleInputChange} required /></div>
+                <div className="form-group"><label className="required">ส่วนสูง (cm)</label><input type="number" id="height" value={formData.height} onChange={handleInputChange} required /></div>
+            </div>
+        </ScreeningFormLayout>
     );
 };
 
-const AdminAddScreeningBmiPage = (props) => (
-    <GenericAddScreeningPage
-        {...props}
-        tableName="screening_bmi"
-        successPage={PAGES.ADMIN_SCREENING_BMI}
-        pageTitle="ข้อมูลดัชนีมวลกาย"
-        formFields={[
-            { id: 'weight', label: 'น้ำหนัก (kg)', type: 'number', required: true },
-            { id: 'height', label: 'ส่วนสูง (cm)', type: 'number', required: true }
-        ]}
-    />
-);
+const AdminAddScreeningWaistPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({ screening_date: new Date().toISOString().split('T')[0], title: '', full_name: '', id_card: '', station: '', waist: '', height: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const interpretation = parseFloat(formData.waist) > (parseFloat(formData.height) / 2) ? 'เกินเกณฑ์' : 'ไม่เกินเกณฑ์';
+        const dataToInsert = { ...formData, interpretation, waist: parseFloat(formData.waist), height: parseFloat(formData.height) };
+        const { error } = await supabase.from('screening_waist').insert([dataToInsert]);
+        setIsSubmitting(false);
+        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
+        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_WAIST); }
+    };
+
+    return (
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_WAIST} pageTitle="ข้อมูลรอบเอว">
+            <div className="form-grid">
+                <div className="form-group"><label className="required">รอบเอว (cm)</label><input type="number" id="waist" value={formData.waist} onChange={handleInputChange} required /></div>
+                <div className="form-group"><label className="required">ส่วนสูง (cm)</label><input type="number" id="height" value={formData.height} onChange={handleInputChange} required /></div>
+            </div>
+        </ScreeningFormLayout>
+    );
+};
+
+const AdminAddScreeningBpPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({ screening_date: new Date().toISOString().split('T')[0], title: '', full_name: '', id_card: '', station: '', systolic: '', diastolic: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const sys = parseInt(formData.systolic);
+        const dia = parseInt(formData.diastolic);
+        let interpretation = 'ปกติ';
+        if ((sys >= 120 && sys <= 139) || (dia >= 80 && dia <= 89)) interpretation = 'กลุ่มเสี่ยง';
+        if (sys >= 140 || dia >= 90) interpretation = 'สงสัยป่วย';
+        
+        const dataToInsert = { ...formData, interpretation, systolic: sys, diastolic: dia };
+        const { error } = await supabase.from('screening_bp').insert([dataToInsert]);
+        setIsSubmitting(false);
+        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
+        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_BP); }
+    };
+
+    return (
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_BP} pageTitle="ข้อมูลความดันโลหิต">
+            <div className="form-grid">
+                <div className="form-group"><label className="required">ค่าความดันตัวบน (Systolic)</label><input type="number" id="systolic" value={formData.systolic} onChange={handleInputChange} required /></div>
+                <div className="form-group"><label className="required">ค่าความดันตัวล่าง (Diastolic)</label><input type="number" id="diastolic" value={formData.diastolic} onChange={handleInputChange} required /></div>
+            </div>
+        </ScreeningFormLayout>
+    );
+};
+
+const AdminAddScreeningSugarPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({ screening_date: new Date().toISOString().split('T')[0], title: '', full_name: '', id_card: '', station: '', sugar_level: '', fasting: 'อด' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const level = parseInt(formData.sugar_level);
+        let interpretation = 'ปกติ';
+        if (level >= 100 && level <= 125) interpretation = 'กลุ่มเสี่ยง';
+        if (level >= 126) interpretation = 'สงสัยป่วย';
+        
+        const dataToInsert = { ...formData, interpretation, sugar_level: level };
+        const { error } = await supabase.from('screening_sugar').insert([dataToInsert]);
+        setIsSubmitting(false);
+        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
+        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_SUGAR); }
+    };
+
+    return (
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_SUGAR} pageTitle="ข้อมูลระดับน้ำตาลในเลือด">
+            <div className="form-grid">
+                <div className="form-group"><label className="required">ระดับน้ำตาล (mg/dL)</label><input type="number" id="sugar_level" value={formData.sugar_level} onChange={handleInputChange} required /></div>
+                <div className="form-group"><label className="required">การอดอาหาร</label><select id="fasting" value={formData.fasting} onChange={handleInputChange}><option>อด</option><option>ไม่อด</option></select></div>
+            </div>
+        </ScreeningFormLayout>
+    );
+};
+
+const AdminAddScreeningSmokingPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({ screening_date: new Date().toISOString().split('T')[0], title: '', full_name: '', id_card: '', station: '', smoking_status: 'ไม่เคยสูบในช่วงชีวิตที่ผ่านมา' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const interpretation = formData.smoking_status === 'ไม่เคยสูบในช่วงชีวิตที่ผ่านมา' ? 'ไม่มีความเสี่ยง' : 'มีความเสี่ยง';
+        const { error } = await supabase.from('screening_smoking').insert([{ ...formData, interpretation }]);
+        setIsSubmitting(false);
+        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
+        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_SMOKING); }
+    };
+
+    return (
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_SMOKING} pageTitle="ข้อมูลการสูบบุหรี่">
+             <div className="form-group"><label className="required">สถานะการสูบบุหรี่</label><select id="smoking_status" value={formData.smoking_status} onChange={handleInputChange}><option>ไม่เคยสูบในช่วงชีวิตที่ผ่านมา</option><option>เคยสูบแต่เลิกมาแล้วมากกว่า 1 เดือน</option><option>ยังคงสูบอยู่</option></select></div>
+        </ScreeningFormLayout>
+    );
+};
+
+const AdminAddScreeningAlcoholPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({ screening_date: new Date().toISOString().split('T')[0], title: '', full_name: '', id_card: '', station: '', alcohol_status: 'ไม่เคยดื่มเลยในช่วงชีวิตที่ผ่านมา' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const interpretation = formData.alcohol_status === 'ไม่เคยดื่มเลยในช่วงชีวิตที่ผ่านมา' ? 'ไม่มีความเสี่ยง' : 'มีความเสี่ยง';
+        const { error } = await supabase.from('screening_alcohol').insert([{ ...formData, interpretation }]);
+        setIsSubmitting(false);
+        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
+        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_ALCOHOL); }
+    };
+
+    return (
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_ALCOHOL} pageTitle="ข้อมูลการดื่มแอลกอฮอล์">
+            <div className="form-group"><label className="required">สถานะการดื่มแอลกอฮอล์</label><select id="alcohol_status" value={formData.alcohol_status} onChange={handleInputChange}><option>ไม่เคยดื่มเลยในช่วงชีวิตที่ผ่านมา</option><option>เคยดื่มแต่ปัจจุบันไม่ได้ดื่มแล้ว</option><option>ยังคงดื่มอยู่</option></select></div>
+        </ScreeningFormLayout>
+    );
+};
+
+const AdminAddScreeningDepressionPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({ screening_date: new Date().toISOString().split('T')[0], title: '', full_name: '', id_card: '', station: '', q1_sad: 'ไม่มี', q2_bored: 'ไม่มี' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const interpretation = formData.q1_sad === 'มี' || formData.q2_bored === 'มี' ? 'มีความเสี่ยง' : 'ไม่มีความเสี่ยง';
+        const { error } = await supabase.from('screening_depression').insert([{ ...formData, interpretation }]);
+        setIsSubmitting(false);
+        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
+        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_DEPRESSION); }
+    };
+    
+    return (
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_DEPRESSION} pageTitle="ข้อมูลภาวะซึมเศร้า">
+             <div className="form-group"><label className="required">ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ ท่านรู้สึก หดหู่ เศร้า หรือท้อแท้สิ้นหวัง หรือไม่</label><select id="q1_sad" value={formData.q1_sad} onChange={handleInputChange}><option>ไม่มี</option><option>มี</option></select></div>
+             <div className="form-group"><label className="required">ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ ท่านรู้สึก เบื่อ ทำอะไรก็ไม่เพลิดเพลิน หรือไม่</label><select id="q2_bored" value={formData.q2_bored} onChange={handleInputChange}><option>ไม่มี</option><option>มี</option></select></div>
+        </ScreeningFormLayout>
+    );
+};
+
 
 // --- All Screening Management Pages ---
 
 const AdminScreeningBmiPage = (props) => (
     <GenericAdminPage
         {...props}
-        pageTitle="ดัชนีมวลกาย (BMI)"
         tableName="screening_bmi"
         addPage={PAGES.ADMIN_ADD_SCREENING_BMI}
-        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'เลข ปชช.', 'น้ำหนัก', 'ส่วนสูง', 'ฺBMI', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
+        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'น้ำหนัก', 'ส่วนสูง', 'ฺBMI', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
         renderRow={(item, index, handleDelete) => (
              <tr key={item.id}>
                 <td>{index + 1}</td>
                 <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
                 <td>{item.title}{item.full_name}</td>
-                <td>{item.id_card}</td>
                 <td>{item.weight}</td>
                 <td>{item.height}</td>
                 <td>{item.bmi}</td>
@@ -1452,19 +1585,20 @@ const AdminScreeningBmiPage = (props) => (
         )}
     />
 );
+
 const AdminScreeningWaistPage = (props) => (
      <GenericAdminPage
         {...props}
-        pageTitle="รอบเอว"
         tableName="screening_waist"
         addPage={PAGES.ADMIN_ADD_SCREENING_WAIST}
-        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'รอบเอว (cm)', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
+        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'รอบเอว (cm)', 'ส่วนสูง (cm)', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
         renderRow={(item, index, handleDelete) => (
              <tr key={item.id}>
                 <td>{index + 1}</td>
                 <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
                 <td>{item.title}{item.full_name}</td>
                 <td>{item.waist}</td>
+                <td>{item.height}</td>
                 <td><span className={`status ${item.interpretation === 'เกินเกณฑ์' ? 'status-over' : 'status-normal'}`}>{item.interpretation}</span></td>
                 <td>{item.station}</td>
                 <td className="table-actions">
@@ -1474,12 +1608,120 @@ const AdminScreeningWaistPage = (props) => (
         )}
     />
 );
-// Placeholder for other screening pages. They will follow the same pattern.
-const AdminScreeningBpPage = (props) => <div className="container"><p>Blood Pressure Page - Coming Soon</p></div>;
-const AdminScreeningSugarPage = (props) => <div className="container"><p>Blood Sugar Page - Coming Soon</p></div>;
-const AdminScreeningSmokingPage = (props) => <div className="container"><p>Smoking Page - Coming Soon</p></div>;
-const AdminScreeningAlcoholPage = (props) => <div className="container"><p>Alcohol Page - Coming Soon</p></div>;
-const AdminScreeningDepressionPage = (props) => <div className="container"><p>Depression Page - Coming Soon</p></div>;
+
+const AdminScreeningBpPage = (props) => (
+     <GenericAdminPage
+        {...props}
+        tableName="screening_bp"
+        addPage={PAGES.ADMIN_ADD_SCREENING_BP}
+        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'ค่าบน', 'ค่าล่าง', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
+        renderRow={(item, index, handleDelete) => (
+             <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
+                <td>{item.title}{item.full_name}</td>
+                <td>{item.systolic}</td>
+                <td>{item.diastolic}</td>
+                <td><span className={`status ${item.interpretation !== 'ปกติ' ? 'status-risk' : 'status-normal'}`}>{item.interpretation}</span></td>
+                <td>{item.station}</td>
+                <td className="table-actions">
+                    <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        )}
+    />
+);
+
+const AdminScreeningSugarPage = (props) => (
+     <GenericAdminPage
+        {...props}
+        tableName="screening_sugar"
+        addPage={PAGES.ADMIN_ADD_SCREENING_SUGAR}
+        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'ระดับน้ำตาล', 'อดอาหาร', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
+        renderRow={(item, index, handleDelete) => (
+             <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
+                <td>{item.title}{item.full_name}</td>
+                <td>{item.sugar_level}</td>
+                <td>{item.fasting}</td>
+                <td><span className={`status ${item.interpretation !== 'ปกติ' ? 'status-risk' : 'status-normal'}`}>{item.interpretation}</span></td>
+                <td>{item.station}</td>
+                <td className="table-actions">
+                    <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        )}
+    />
+);
+
+const AdminScreeningSmokingPage = (props) => (
+     <GenericAdminPage
+        {...props}
+        tableName="screening_smoking"
+        addPage={PAGES.ADMIN_ADD_SCREENING_SMOKING}
+        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'การสูบบุหรี่', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
+        renderRow={(item, index, handleDelete) => (
+             <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
+                <td>{item.title}{item.full_name}</td>
+                <td>{item.smoking_status}</td>
+                <td><span className={`status ${item.interpretation !== 'ไม่มีความเสี่ยง' ? 'status-risk' : 'status-normal'}`}>{item.interpretation}</span></td>
+                <td>{item.station}</td>
+                <td className="table-actions">
+                    <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        )}
+    />
+);
+
+const AdminScreeningAlcoholPage = (props) => (
+     <GenericAdminPage
+        {...props}
+        tableName="screening_alcohol"
+        addPage={PAGES.ADMIN_ADD_SCREENING_ALCOHOL}
+        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'การดื่มแอลกอฮอล์', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
+        renderRow={(item, index, handleDelete) => (
+             <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
+                <td>{item.title}{item.full_name}</td>
+                <td>{item.alcohol_status}</td>
+                <td><span className={`status ${item.interpretation !== 'ไม่มีความเสี่ยง' ? 'status-risk' : 'status-normal'}`}>{item.interpretation}</span></td>
+                <td>{item.station}</td>
+                <td className="table-actions">
+                    <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        )}
+    />
+);
+
+const AdminScreeningDepressionPage = (props) => (
+     <GenericAdminPage
+        {...props}
+        tableName="screening_depression"
+        addPage={PAGES.ADMIN_ADD_SCREENING_DEPRESSION}
+        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'คำถาม 1', 'คำถาม 2', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
+        renderRow={(item, index, handleDelete) => (
+             <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
+                <td>{item.title}{item.full_name}</td>
+                <td>{item.q1_sad}</td>
+                <td>{item.q2_bored}</td>
+                <td><span className={`status ${item.interpretation !== 'ไม่มีความเสี่ยง' ? 'status-risk' : 'status-normal'}`}>{item.interpretation}</span></td>
+                <td>{item.station}</td>
+                <td className="table-actions">
+                    <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        )}
+    />
+);
+
 
 const AdminReportsPage = () => (
     <div className="page-container">
@@ -1570,16 +1812,22 @@ const App = () => {
                 case PAGES.ADMIN_SCREENING_BMI: return AdminPage("การคัดกรอง: ดัชนีมวลกาย", AdminScreeningBmiPage);
                 case PAGES.ADMIN_ADD_SCREENING_BMI: return AdminPage("เพิ่มข้อมูล: ดัชนีมวลกาย", AdminAddScreeningBmiPage);
                 case PAGES.ADMIN_SCREENING_WAIST: return AdminPage("การคัดกรอง: รอบเอว", AdminScreeningWaistPage);
-                // case PAGES.ADMIN_ADD_SCREENING_WAIST: return AdminPage("เพิ่มข้อมูล: รอบเอว", AdminAddScreeningWaistPage);
+                case PAGES.ADMIN_ADD_SCREENING_WAIST: return AdminPage("เพิ่มข้อมูล: รอบเอว", AdminAddScreeningWaistPage);
                 case PAGES.ADMIN_SCREENING_BP: return AdminPage("การคัดกรอง: ความดันโลหิต", AdminScreeningBpPage);
+                case PAGES.ADMIN_ADD_SCREENING_BP: return AdminPage("เพิ่มข้อมูล: ความดันโลหิต", AdminAddScreeningBpPage);
                 case PAGES.ADMIN_SCREENING_SUGAR: return AdminPage("การคัดกรอง: น้ำตาลในเลือด", AdminScreeningSugarPage);
+                case PAGES.ADMIN_ADD_SCREENING_SUGAR: return AdminPage("เพิ่มข้อมูล: น้ำตาลในเลือด", AdminAddScreeningSugarPage);
                 case PAGES.ADMIN_SCREENING_SMOKING: return AdminPage("การคัดกรอง: การสูบบุหรี่", AdminScreeningSmokingPage);
+                case PAGES.ADMIN_ADD_SCREENING_SMOKING: return AdminPage("เพิ่มข้อมูล: การสูบบุหรี่", AdminAddScreeningSmokingPage);
                 case PAGES.ADMIN_SCREENING_ALCOHOL: return AdminPage("การคัดกรอง: การดื่มสุรา", AdminScreeningAlcoholPage);
+                case PAGES.ADMIN_ADD_SCREENING_ALCOHOL: return AdminPage("เพิ่มข้อมูล: การดื่มสุรา", AdminAddScreeningAlcoholPage);
                 case PAGES.ADMIN_SCREENING_DEPRESSION: return AdminPage("การคัดกรอง: ภาวะซึมเศร้า", AdminScreeningDepressionPage);
+                case PAGES.ADMIN_ADD_SCREENING_DEPRESSION: return AdminPage("เพิ่มข้อมูล: ภาวะซึมเศร้า", AdminAddScreeningDepressionPage);
                 
                 case PAGES.ADMIN_KNOWLEDGE_ASSESSMENT_RESULTS: return AdminPage("ผลการประเมินความรอบรู้", AdminKnowledgeAssessmentResults);
                 case PAGES.ADMIN_INNOVATION_ASSESSMENT_RESULTS: return AdminPage("ผลการประเมินนวัตกรรม", AdminInnovationAssessmentResults);
                 
+                // FIX: Corrected typo from ADMIN_REports to ADMIN_REPORTS.
                 case PAGES.ADMIN_REPORTS: return AdminPage("รายงาน", AdminReportsPage);
 
                 default: return AdminPage("เมนูจัดการ", AdminDashboard);
