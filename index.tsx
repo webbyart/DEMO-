@@ -28,24 +28,34 @@ const PAGES = {
     ADMIN_DASHBOARD: 'admin_dashboard',
     ADMIN_USER_MANAGEMENT: 'admin_user_management',
     ADMIN_ADD_USER: 'admin_add_user',
+    ADMIN_EDIT_USER: 'admin_edit_user',
     ADMIN_HEALTH_STATION_MANAGEMENT: 'admin_health_station_management',
     ADMIN_ADD_HEALTH_STATION: 'admin_add_health_station',
+    ADMIN_EDIT_HEALTH_STATION: 'admin_edit_health_station',
     
     ADMIN_SCREENING_DASHBOARD: 'admin_screening_dashboard',
     ADMIN_SCREENING_BMI: 'admin_screening_bmi',
     ADMIN_ADD_SCREENING_BMI: 'admin_add_screening_bmi',
+    // FIX: Added missing ADMIN_EDIT_SCREENING... pages to the PAGES object.
+    ADMIN_EDIT_SCREENING_BMI: 'admin_edit_screening_bmi',
     ADMIN_SCREENING_WAIST: 'admin_screening_waist',
     ADMIN_ADD_SCREENING_WAIST: 'admin_add_screening_waist',
+    ADMIN_EDIT_SCREENING_WAIST: 'admin_edit_screening_waist',
     ADMIN_SCREENING_BP: 'admin_screening_bp',
     ADMIN_ADD_SCREENING_BP: 'admin_add_screening_bp',
+    ADMIN_EDIT_SCREENING_BP: 'admin_edit_screening_bp',
     ADMIN_SCREENING_SUGAR: 'admin_screening_sugar',
     ADMIN_ADD_SCREENING_SUGAR: 'admin_add_screening_sugar',
+    ADMIN_EDIT_SCREENING_SUGAR: 'admin_edit_screening_sugar',
     ADMIN_SCREENING_SMOKING: 'admin_screening_smoking',
     ADMIN_ADD_SCREENING_SMOKING: 'admin_add_screening_smoking',
+    ADMIN_EDIT_SCREENING_SMOKING: 'admin_edit_screening_smoking',
     ADMIN_SCREENING_ALCOHOL: 'admin_screening_alcohol',
     ADMIN_ADD_SCREENING_ALCOHOL: 'admin_add_screening_alcohol',
+    ADMIN_EDIT_SCREENING_ALCOHOL: 'admin_edit_screening_alcohol',
     ADMIN_SCREENING_DEPRESSION: 'admin_screening_depression',
     ADMIN_ADD_SCREENING_DEPRESSION: 'admin_add_screening_depression',
+    ADMIN_EDIT_SCREENING_DEPRESSION: 'admin_edit_screening_depression',
     
     ADMIN_KNOWLEDGE_ASSESSMENT_RESULTS: 'admin_knowledge_assessment_results',
     ADMIN_INNOVATION_ASSESSMENT_RESULTS: 'admin_innovation_assessment_results',
@@ -923,7 +933,7 @@ const AdminUserManagement = ({ navigateTo }) => {
                                     </span>
                                 </td>
                                 <td className="table-actions">
-                                    <button className="btn btn-outline" style={{padding: '0.25rem 0.5rem', marginRight: '0.5rem'}}>ดู/แก้ไข</button>
+                                    <button className="btn btn-outline" style={{padding: '0.25rem 0.5rem', marginRight: '0.5rem'}} onClick={() => navigateTo(PAGES.ADMIN_EDIT_USER, { id: user.id })}>ดู/แก้ไข</button>
                                     <button className="btn btn-danger" style={{padding: '0.25rem 0.5rem'}} onClick={() => handleDelete(user.id)}>ลบ</button>
                                 </td>
                             </tr>
@@ -1006,8 +1016,8 @@ const AdminAddUserPage = ({ navigateTo }) => {
                     <input type="text" id="username" value={formData.username} onChange={handleInputChange} required />
                 </div>
                 <div className="form-group">
-                    <label className="required" htmlFor="password">รหัสผ่าน</label>
-                    <input type="password" id="password" value={formData.password} onChange={handleInputChange} required />
+                    <label className="required" htmlFor="password">รหัสผ่าน (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)</label>
+                    <input type="password" id="password" value={formData.password} onChange={handleInputChange} />
                 </div>
                 <div className="form-group">
                     <label className="required" htmlFor="status">สถานะการใช้งาน</label>
@@ -1027,6 +1037,99 @@ const AdminAddUserPage = ({ navigateTo }) => {
     );
 };
 
+const AdminEditUserPage = ({ navigateTo, params }) => {
+    const [formData, setFormData] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const userId = params.id;
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+            if (error) {
+                alert('ไม่พบข้อมูลผู้ใช้: ' + error.message);
+                navigateTo(PAGES.ADMIN_USER_MANAGEMENT);
+            } else {
+                setFormData({ ...data, password: '' }); // Clear password for security
+            }
+            setLoading(false);
+        };
+        fetchUser();
+    }, [userId, navigateTo]);
+
+    const handleInputChange = (e) => {
+        const { id, value } = e.target;
+        setFormData({ ...formData, [id]: value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        const { password, ...updateData } = formData;
+        if (password) {
+            updateData.password = password; // Only include password if it's changed
+        }
+
+        const { error } = await supabase.from('users').update(updateData).eq('id', userId);
+        setIsSubmitting(false);
+
+        if (error) {
+            alert('เกิดข้อผิดพลาดในการแก้ไขข้อมูล: ' + error.message);
+        } else {
+            alert('แก้ไขข้อมูลผู้ใช้สำเร็จ!');
+            navigateTo(PAGES.ADMIN_USER_MANAGEMENT);
+        }
+    };
+
+    if (loading || !formData) {
+        return <p style={{ textAlign: 'center', padding: '2rem' }}>กำลังโหลดข้อมูล...</p>;
+    }
+
+    return (
+        <div className="page-container" style={{maxWidth: '700px', margin: '0 auto'}}>
+             <form onSubmit={handleSubmit}>
+                 <div className="form-group">
+                    <label className="required" htmlFor="title">คำนำหน้า</label>
+                    <select id="title" value={formData.title} onChange={handleInputChange} required>
+                        <option value="">-- เลือกคำนำหน้า --</option><option>นาย</option><option>นางสาว</option><option>นาง</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label className="required" htmlFor="full_name">ชื่อ-สกุล</label>
+                    <input type="text" id="full_name" value={formData.full_name} onChange={handleInputChange} required />
+                </div>
+                 <div className="form-group">
+                    <label className="required" htmlFor="id_card">เลขประจำตัวประชาชน</label>
+                    <input type="text" id="id_card" value={formData.id_card} onChange={handleInputChange} required />
+                </div>
+                <div className="form-group">
+                    <label className="required" htmlFor="username">ชื่อผู้ใช้</label>
+                    <input type="text" id="username" value={formData.username} onChange={handleInputChange} required />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="password">รหัสผ่าน (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)</label>
+                    <input type="password" id="password" value={formData.password} onChange={handleInputChange} placeholder="••••••••" />
+                </div>
+                <div className="form-group">
+                    <label className="required" htmlFor="status">สถานะการใช้งาน</label>
+                    <select id="status" value={formData.status} onChange={handleInputChange} required>
+                        <option value="ใช้งานได้">ใช้งานได้</option>
+                        <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+                    </select>
+                </div>
+                <div className="form-actions">
+                    <button type="button" className="btn btn-outline" onClick={() => navigateTo(PAGES.ADMIN_USER_MANAGEMENT)}>ยกเลิก</button>
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+
 const AdminHealthStationManagement = ({ navigateTo }) => {
     const [stations, setStations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -1036,7 +1139,7 @@ const AdminHealthStationManagement = ({ navigateTo }) => {
         const { data, error } = await supabase.from('health_stations').select('*').order('created_at', { ascending: false });
         if (error) {
             console.error('Error fetching stations:', error);
-            alert('ไม่สามารถโหลดข้อมูล Health Station ได้');
+            alert('ไม่สามารถโหลดข้อมูล Health Station ได้: ' + error.message);
         } else {
             setStations(data);
         }
@@ -1095,7 +1198,7 @@ const AdminHealthStationManagement = ({ navigateTo }) => {
                                     </span>
                                 </td>
                                 <td className="table-actions">
-                                    <button className="btn btn-outline" style={{padding: '0.25rem 0.5rem', marginRight: '0.5rem'}}>ดู/แก้ไข</button>
+                                    <button className="btn btn-outline" style={{padding: '0.25rem 0.5rem', marginRight: '0.5rem'}} onClick={() => navigateTo(PAGES.ADMIN_EDIT_HEALTH_STATION, { id: station.id })}>ดู/แก้ไข</button>
                                     <button className="btn btn-danger" style={{padding: '0.25rem 0.5rem'}} onClick={() => handleDelete(station.id)}>ลบ</button>
                                 </td>
                             </tr>
@@ -1169,6 +1272,79 @@ const AdminAddHealthStationPage = ({ navigateTo }) => {
     );
 };
 
+const AdminEditHealthStationPage = ({ navigateTo, params }) => {
+    const [formData, setFormData] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const stationId = params.id;
+
+    useEffect(() => {
+        const fetchStation = async () => {
+            const { data, error } = await supabase.from('health_stations').select('*').eq('id', stationId).single();
+            if (error) {
+                alert('ไม่พบข้อมูล Health Station: ' + error.message);
+                navigateTo(PAGES.ADMIN_HEALTH_STATION_MANAGEMENT);
+            } else {
+                setFormData(data);
+            }
+            setLoading(false);
+        };
+        fetchStation();
+    }, [stationId, navigateTo]);
+
+    const handleInputChange = (e) => {
+        const { id, value } = e.target;
+        setFormData({ ...formData, [id]: value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const { error } = await supabase.from('health_stations').update(formData).eq('id', stationId);
+        setIsSubmitting(false);
+
+        if (error) {
+            alert('เกิดข้อผิดพลาดในการแก้ไขข้อมูล: ' + error.message);
+        } else {
+            alert('แก้ไขข้อมูล Health Station สำเร็จ!');
+            navigateTo(PAGES.ADMIN_HEALTH_STATION_MANAGEMENT);
+        }
+    };
+    
+    if (loading || !formData) {
+        return <p style={{ textAlign: 'center', padding: '2rem' }}>กำลังโหลดข้อมูล...</p>;
+    }
+
+    return (
+        <div className="page-container" style={{ maxWidth: '700px', margin: '0 auto' }}>
+            <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                    <label className="required" htmlFor="name">ชื่อจุดบริการ Health Station</label>
+                    <input type="text" id="name" value={formData.name} onChange={handleInputChange} required />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="service_code">รหัสหน่วยบริการ</label>
+                    <input type="text" id="service_code" value={formData.service_code} onChange={handleInputChange} />
+                </div>
+                <div className="form-group">
+                    <label className="required" htmlFor="status">สถานะการให้บริการ</label>
+                    <select id="status" value={formData.status} onChange={handleInputChange} required>
+                        <option value="เปิดให้บริการ">เปิดให้บริการ</option>
+                        <option value="ปิดให้บริการ">ปิดให้บริการ</option>
+                    </select>
+                </div>
+                <div className="form-actions">
+                    <button type="button" className="btn btn-outline" onClick={() => navigateTo(PAGES.ADMIN_HEALTH_STATION_MANAGEMENT)}>ยกเลิก</button>
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+
 // --- Generic Admin Page Components ---
 const GenericAdminPage = ({
     navigateTo,
@@ -1176,6 +1352,7 @@ const GenericAdminPage = ({
     tableName,
     columns,
     addPage,
+    editPage,
     renderRow
 }) => {
     const [data, setData] = useState([]);
@@ -1249,7 +1426,7 @@ const GenericAdminPage = ({
                         </tr>
                     </thead>
                     <tbody>
-                        {data.length > 0 ? data.map((item, index) => renderRow(item, index, handleDelete)) : <tr><td colSpan={columns.length} style={{textAlign: 'center'}}>ไม่พบข้อมูล</td></tr>}
+                        {data.length > 0 ? data.map((item, index) => renderRow(item, index, handleDelete, navigateTo, editPage)) : <tr><td colSpan={columns.length} style={{textAlign: 'center'}}>ไม่พบข้อมูล</td></tr>}
                     </tbody>
                 </table>
             </div>
@@ -1341,9 +1518,9 @@ const AdminInnovationAssessmentResults = (props) => (
 );
 
 
-// --- Specific Add Screening Forms with Logic ---
+// --- Specific Add/Edit Screening Forms with Logic ---
 
-const ScreeningFormLayout = ({ navigateTo, successPage, handleSubmit, isSubmitting, pageTitle, children, handleInputChange, formData }) => (
+const ScreeningFormLayout = ({ navigateTo, backPage, handleSubmit, isSubmitting, pageTitle, children, handleInputChange, formData, isEdit = false }) => (
      <div className="page-container" style={{maxWidth: '800px', margin: '0 auto'}}>
         <form onSubmit={handleSubmit}>
             <h2 className="form-section-header">ข้อมูลผู้รับการคัดกรอง</h2>
@@ -1357,9 +1534,9 @@ const ScreeningFormLayout = ({ navigateTo, successPage, handleSubmit, isSubmitti
             <h2 className="form-section-header">{pageTitle}</h2>
             {children}
             <div className="form-actions">
-                <button type="button" className="btn btn-outline" onClick={() => navigateTo(successPage)}>ยกเลิก</button>
+                <button type="button" className="btn btn-outline" onClick={() => navigateTo(backPage)}>ยกเลิก</button>
                 <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                    {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                    {isSubmitting ? 'กำลังบันทึก...' : isEdit ? 'บันทึกการเปลี่ยนแปลง' : 'บันทึกข้อมูล'}
                 </button>
             </div>
         </form>
@@ -1377,7 +1554,6 @@ const AdminAddScreeningBmiPage = ({ navigateTo }) => {
 
         const heightM = parseFloat(formData.height) / 100;
         const weightKg = parseFloat(formData.weight);
-        // FIX: Calculate BMI as a number for comparison to avoid type errors.
         const bmiValue = weightKg / (heightM * heightM);
         const bmi = bmiValue.toFixed(2);
         let interpretation = '';
@@ -1396,7 +1572,7 @@ const AdminAddScreeningBmiPage = ({ navigateTo }) => {
     };
 
     return (
-        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_BMI} pageTitle="ข้อมูลดัชนีมวลกาย">
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} backPage={PAGES.ADMIN_SCREENING_BMI} pageTitle="ข้อมูลดัชนีมวลกาย">
             <div className="form-grid">
                 <div className="form-group"><label className="required">น้ำหนัก (kg)</label><input type="number" id="weight" value={formData.weight} onChange={handleInputChange} required /></div>
                 <div className="form-group"><label className="required">ส่วนสูง (cm)</label><input type="number" id="height" value={formData.height} onChange={handleInputChange} required /></div>
@@ -1422,7 +1598,7 @@ const AdminAddScreeningWaistPage = ({ navigateTo }) => {
     };
 
     return (
-        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_WAIST} pageTitle="ข้อมูลรอบเอว">
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} backPage={PAGES.ADMIN_SCREENING_WAIST} pageTitle="ข้อมูลรอบเอว">
             <div className="form-grid">
                 <div className="form-group"><label className="required">รอบเอว (cm)</label><input type="number" id="waist" value={formData.waist} onChange={handleInputChange} required /></div>
                 <div className="form-group"><label className="required">ส่วนสูง (cm)</label><input type="number" id="height" value={formData.height} onChange={handleInputChange} required /></div>
@@ -1453,7 +1629,7 @@ const AdminAddScreeningBpPage = ({ navigateTo }) => {
     };
 
     return (
-        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_BP} pageTitle="ข้อมูลความดันโลหิต">
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} backPage={PAGES.ADMIN_SCREENING_BP} pageTitle="ข้อมูลความดันโลหิต">
             <div className="form-grid">
                 <div className="form-group"><label className="required">ค่าความดันตัวบน (Systolic)</label><input type="number" id="systolic" value={formData.systolic} onChange={handleInputChange} required /></div>
                 <div className="form-group"><label className="required">ค่าความดันตัวล่าง (Diastolic)</label><input type="number" id="diastolic" value={formData.diastolic} onChange={handleInputChange} required /></div>
@@ -1483,7 +1659,7 @@ const AdminAddScreeningSugarPage = ({ navigateTo }) => {
     };
 
     return (
-        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_SUGAR} pageTitle="ข้อมูลระดับน้ำตาลในเลือด">
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} backPage={PAGES.ADMIN_SCREENING_SUGAR} pageTitle="ข้อมูลระดับน้ำตาลในเลือด">
             <div className="form-grid">
                 <div className="form-group"><label className="required">ระดับน้ำตาล (mg/dL)</label><input type="number" id="sugar_level" value={formData.sugar_level} onChange={handleInputChange} required /></div>
                 <div className="form-group"><label className="required">การอดอาหาร</label><select id="fasting" value={formData.fasting} onChange={handleInputChange}><option>อด</option><option>ไม่อด</option></select></div>
@@ -1508,7 +1684,7 @@ const AdminAddScreeningSmokingPage = ({ navigateTo }) => {
     };
 
     return (
-        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_SMOKING} pageTitle="ข้อมูลการสูบบุหรี่">
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} backPage={PAGES.ADMIN_SCREENING_SMOKING} pageTitle="ข้อมูลการสูบบุหรี่">
              <div className="form-group"><label className="required">สถานะการสูบบุหรี่</label><select id="smoking_status" value={formData.smoking_status} onChange={handleInputChange}><option>ไม่เคยสูบในช่วงชีวิตที่ผ่านมา</option><option>เคยสูบแต่เลิกมาแล้วมากกว่า 1 เดือน</option><option>ยังคงสูบอยู่</option></select></div>
         </ScreeningFormLayout>
     );
@@ -1530,7 +1706,7 @@ const AdminAddScreeningAlcoholPage = ({ navigateTo }) => {
     };
 
     return (
-        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_ALCOHOL} pageTitle="ข้อมูลการดื่มแอลกอฮอล์">
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} backPage={PAGES.ADMIN_SCREENING_ALCOHOL} pageTitle="ข้อมูลการดื่มแอลกอฮอล์">
             <div className="form-group"><label className="required">สถานะการดื่มแอลกอฮอล์</label><select id="alcohol_status" value={formData.alcohol_status} onChange={handleInputChange}><option>ไม่เคยดื่มเลยในช่วงชีวิตที่ผ่านมา</option><option>เคยดื่มแต่ปัจจุบันไม่ได้ดื่มแล้ว</option><option>ยังคงดื่มอยู่</option></select></div>
         </ScreeningFormLayout>
     );
@@ -1552,7 +1728,7 @@ const AdminAddScreeningDepressionPage = ({ navigateTo }) => {
     };
     
     return (
-        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} successPage={PAGES.ADMIN_SCREENING_DEPRESSION} pageTitle="ข้อมูลภาวะซึมเศร้า">
+        <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} backPage={PAGES.ADMIN_SCREENING_DEPRESSION} pageTitle="ข้อมูลภาวะซึมเศร้า">
              <div className="form-group"><label className="required">ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ ท่านรู้สึก หดหู่ เศร้า หรือท้อแท้สิ้นหวัง หรือไม่</label><select id="q1_sad" value={formData.q1_sad} onChange={handleInputChange}><option>ไม่มี</option><option>มี</option></select></div>
              <div className="form-group"><label className="required">ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ ท่านรู้สึก เบื่อ ทำอะไรก็ไม่เพลิดเพลิน หรือไม่</label><select id="q2_bored" value={formData.q2_bored} onChange={handleInputChange}><option>ไม่มี</option><option>มี</option></select></div>
         </ScreeningFormLayout>
@@ -1567,8 +1743,9 @@ const AdminScreeningBmiPage = (props) => (
         {...props}
         tableName="screening_bmi"
         addPage={PAGES.ADMIN_ADD_SCREENING_BMI}
+        editPage={PAGES.ADMIN_EDIT_SCREENING_BMI}
         columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'น้ำหนัก', 'ส่วนสูง', 'ฺBMI', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
-        renderRow={(item, index, handleDelete) => (
+        renderRow={(item, index, handleDelete, navigateTo, editPage) => (
              <tr key={item.id}>
                 <td>{index + 1}</td>
                 <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
@@ -1579,6 +1756,7 @@ const AdminScreeningBmiPage = (props) => (
                 <td><span className={`status status-normal`}>{item.interpretation}</span></td>
                 <td>{item.station}</td>
                 <td className="table-actions">
+                    <button className="btn btn-outline" onClick={() => navigateTo(editPage, { id: item.id })}><i className="fa-solid fa-pen-to-square"></i></button>
                     <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -1591,8 +1769,9 @@ const AdminScreeningWaistPage = (props) => (
         {...props}
         tableName="screening_waist"
         addPage={PAGES.ADMIN_ADD_SCREENING_WAIST}
+        editPage={PAGES.ADMIN_EDIT_SCREENING_WAIST}
         columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'รอบเอว (cm)', 'ส่วนสูง (cm)', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
-        renderRow={(item, index, handleDelete) => (
+        renderRow={(item, index, handleDelete, navigateTo, editPage) => (
              <tr key={item.id}>
                 <td>{index + 1}</td>
                 <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
@@ -1602,6 +1781,7 @@ const AdminScreeningWaistPage = (props) => (
                 <td><span className={`status ${item.interpretation === 'เกินเกณฑ์' ? 'status-over' : 'status-normal'}`}>{item.interpretation}</span></td>
                 <td>{item.station}</td>
                 <td className="table-actions">
+                    <button className="btn btn-outline" onClick={() => navigateTo(editPage, { id: item.id })}><i className="fa-solid fa-pen-to-square"></i></button>
                     <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -1614,8 +1794,9 @@ const AdminScreeningBpPage = (props) => (
         {...props}
         tableName="screening_bp"
         addPage={PAGES.ADMIN_ADD_SCREENING_BP}
+        editPage={PAGES.ADMIN_EDIT_SCREENING_BP}
         columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'ค่าบน', 'ค่าล่าง', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
-        renderRow={(item, index, handleDelete) => (
+        renderRow={(item, index, handleDelete, navigateTo, editPage) => (
              <tr key={item.id}>
                 <td>{index + 1}</td>
                 <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
@@ -1625,6 +1806,7 @@ const AdminScreeningBpPage = (props) => (
                 <td><span className={`status ${item.interpretation !== 'ปกติ' ? 'status-risk' : 'status-normal'}`}>{item.interpretation}</span></td>
                 <td>{item.station}</td>
                 <td className="table-actions">
+                    <button className="btn btn-outline" onClick={() => navigateTo(editPage, { id: item.id })}><i className="fa-solid fa-pen-to-square"></i></button>
                     <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -1637,8 +1819,9 @@ const AdminScreeningSugarPage = (props) => (
         {...props}
         tableName="screening_sugar"
         addPage={PAGES.ADMIN_ADD_SCREENING_SUGAR}
+        editPage={PAGES.ADMIN_EDIT_SCREENING_SUGAR}
         columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'ระดับน้ำตาล', 'อดอาหาร', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
-        renderRow={(item, index, handleDelete) => (
+        renderRow={(item, index, handleDelete, navigateTo, editPage) => (
              <tr key={item.id}>
                 <td>{index + 1}</td>
                 <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
@@ -1648,6 +1831,7 @@ const AdminScreeningSugarPage = (props) => (
                 <td><span className={`status ${item.interpretation !== 'ปกติ' ? 'status-risk' : 'status-normal'}`}>{item.interpretation}</span></td>
                 <td>{item.station}</td>
                 <td className="table-actions">
+                    <button className="btn btn-outline" onClick={() => navigateTo(editPage, { id: item.id })}><i className="fa-solid fa-pen-to-square"></i></button>
                     <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -1660,8 +1844,9 @@ const AdminScreeningSmokingPage = (props) => (
         {...props}
         tableName="screening_smoking"
         addPage={PAGES.ADMIN_ADD_SCREENING_SMOKING}
+        editPage={PAGES.ADMIN_EDIT_SCREENING_SMOKING}
         columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'การสูบบุหรี่', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
-        renderRow={(item, index, handleDelete) => (
+        renderRow={(item, index, handleDelete, navigateTo, editPage) => (
              <tr key={item.id}>
                 <td>{index + 1}</td>
                 <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
@@ -1670,6 +1855,7 @@ const AdminScreeningSmokingPage = (props) => (
                 <td><span className={`status ${item.interpretation !== 'ไม่มีความเสี่ยง' ? 'status-risk' : 'status-normal'}`}>{item.interpretation}</span></td>
                 <td>{item.station}</td>
                 <td className="table-actions">
+                    <button className="btn btn-outline" onClick={() => navigateTo(editPage, { id: item.id })}><i className="fa-solid fa-pen-to-square"></i></button>
                     <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -1682,8 +1868,9 @@ const AdminScreeningAlcoholPage = (props) => (
         {...props}
         tableName="screening_alcohol"
         addPage={PAGES.ADMIN_ADD_SCREENING_ALCOHOL}
+        editPage={PAGES.ADMIN_EDIT_SCREENING_ALCOHOL}
         columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'การดื่มแอลกอฮอล์', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
-        renderRow={(item, index, handleDelete) => (
+        renderRow={(item, index, handleDelete, navigateTo, editPage) => (
              <tr key={item.id}>
                 <td>{index + 1}</td>
                 <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
@@ -1692,6 +1879,7 @@ const AdminScreeningAlcoholPage = (props) => (
                 <td><span className={`status ${item.interpretation !== 'ไม่มีความเสี่ยง' ? 'status-risk' : 'status-normal'}`}>{item.interpretation}</span></td>
                 <td>{item.station}</td>
                 <td className="table-actions">
+                    <button className="btn btn-outline" onClick={() => navigateTo(editPage, { id: item.id })}><i className="fa-solid fa-pen-to-square"></i></button>
                     <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -1704,8 +1892,9 @@ const AdminScreeningDepressionPage = (props) => (
         {...props}
         tableName="screening_depression"
         addPage={PAGES.ADMIN_ADD_SCREENING_DEPRESSION}
+        editPage={PAGES.ADMIN_EDIT_SCREENING_DEPRESSION}
         columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'คำถาม 1', 'คำถาม 2', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
-        renderRow={(item, index, handleDelete) => (
+        renderRow={(item, index, handleDelete, navigateTo, editPage) => (
              <tr key={item.id}>
                 <td>{index + 1}</td>
                 <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
@@ -1715,6 +1904,7 @@ const AdminScreeningDepressionPage = (props) => (
                 <td><span className={`status ${item.interpretation !== 'ไม่มีความเสี่ยง' ? 'status-risk' : 'status-normal'}`}>{item.interpretation}</span></td>
                 <td>{item.station}</td>
                 <td className="table-actions">
+                    <button className="btn btn-outline" onClick={() => navigateTo(editPage, { id: item.id })}><i className="fa-solid fa-pen-to-square"></i></button>
                     <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -1762,12 +1952,12 @@ const AdminLayout = ({ children, title, navigateTo }) => (
 
 // --- Main App Component ---
 const App = () => {
-    const [currentPage, setCurrentPage] = useState(PAGES.HOME);
+    const [page, setPage] = useState({ name: PAGES.HOME, params: {} });
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     
-    const navigateTo = (page) => {
+    const navigateTo = (pageName, params = {}) => {
         window.scrollTo(0, 0);
-        setCurrentPage(page);
+        setPage({ name: pageName, params });
     };
 
     const handleLogin = () => {
@@ -1782,7 +1972,7 @@ const App = () => {
     
     const renderPage = () => {
         if (!isLoggedIn) {
-            switch (currentPage) {
+            switch (page.name) {
                 case PAGES.HOME: return <HomePage navigateTo={navigateTo} />;
                 case PAGES.CARB_COUNTER: return <CarbCounterPage navigateTo={navigateTo} />;
                 case PAGES.KNOWLEDGE_ASSESSMENT: return <KnowledgeAssessmentPage navigateTo={navigateTo} />;
@@ -1797,37 +1987,98 @@ const App = () => {
              // Logged in user routing
             const AdminPage = (title, Component, props = {}) => (
                 <AdminLayout title={title} navigateTo={navigateTo}>
-                    <Component navigateTo={navigateTo} {...props} />
+                    <Component navigateTo={navigateTo} params={page.params} {...props} />
                 </AdminLayout>
             );
+            
+            // FIX: Removed redundant PAGES_WITH_EDIT and will use the global PAGES object directly.
+            
+            // Placeholder Edit Components
+            const createEditScreeningComponent = (backPage, tableName, FormComponent) => ({ navigateTo, params }) => {
+                const [formData, setFormData] = useState(null);
+                const [loading, setLoading] = useState(true);
+                useEffect(() => {
+                    const fetchData = async () => {
+                        const { data, error } = await supabase.from(tableName).select('*').eq('id', params.id).single();
+                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(backPage); } 
+                        else { setFormData(data); }
+                        setLoading(false);
+                    };
+                    fetchData();
+                }, [params.id]);
 
-            switch (currentPage) {
+                if (loading || !formData) return <p>กำลังโหลด...</p>;
+                
+                // We need a full edit form component here. For now, this is a placeholder structure.
+                // The actual form logic is complex and would be similar to the Add forms.
+                return <FormComponent navigateTo={navigateTo} initialData={formData} isEdit={true} />;
+            };
+            
+            const AdminEditScreeningBmiPage = ({ navigateTo, params }) => {
+                // This would contain the edit form logic. For now, it's a placeholder.
+                return <div>Edit BMI Page for ID: {params.id} (Coming Soon)</div>
+            };
+            const AdminEditScreeningWaistPage = ({ navigateTo, params }) => {
+                return <div>Edit Waist Page for ID: {params.id} (Coming Soon)</div>
+            };
+             const AdminEditScreeningBpPage = ({ navigateTo, params }) => {
+                return <div>Edit BP Page for ID: {params.id} (Coming Soon)</div>
+            };
+             const AdminEditScreeningSugarPage = ({ navigateTo, params }) => {
+                return <div>Edit Sugar Page for ID: {params.id} (Coming Soon)</div>
+            };
+             const AdminEditScreeningSmokingPage = ({ navigateTo, params }) => {
+                return <div>Edit Smoking Page for ID: {params.id} (Coming Soon)</div>
+            };
+             const AdminEditScreeningAlcoholPage = ({ navigateTo, params }) => {
+                return <div>Edit Alcohol Page for ID: {params.id} (Coming Soon)</div>
+            };
+             const AdminEditScreeningDepressionPage = ({ navigateTo, params }) => {
+                return <div>Edit Depression Page for ID: {params.id} (Coming Soon)</div>
+            };
+
+
+            switch (page.name) {
                 case PAGES.ADMIN_DASHBOARD: return AdminPage("เมนูจัดการ", AdminDashboard);
                 case PAGES.ADMIN_USER_MANAGEMENT: return AdminPage("การจัดการผู้ใช้", AdminUserManagement);
                 case PAGES.ADMIN_ADD_USER: return AdminPage("เพิ่มผู้ใช้ใหม่", AdminAddUserPage);
+                case PAGES.ADMIN_EDIT_USER: return AdminPage("แก้ไขข้อมูลผู้ใช้", AdminEditUserPage);
                 case PAGES.ADMIN_HEALTH_STATION_MANAGEMENT: return AdminPage("การจัดการ Health Station", AdminHealthStationManagement);
                 case PAGES.ADMIN_ADD_HEALTH_STATION: return AdminPage("เพิ่ม Health Station", AdminAddHealthStationPage);
+                case PAGES.ADMIN_EDIT_HEALTH_STATION: return AdminPage("แก้ไข Health Station", AdminEditHealthStationPage);
                 
                 case PAGES.ADMIN_SCREENING_DASHBOARD: return AdminPage("ทะเบียนการคัดกรอง", AdminScreeningDashboard);
                 case PAGES.ADMIN_SCREENING_BMI: return AdminPage("การคัดกรอง: ดัชนีมวลกาย", AdminScreeningBmiPage);
                 case PAGES.ADMIN_ADD_SCREENING_BMI: return AdminPage("เพิ่มข้อมูล: ดัชนีมวลกาย", AdminAddScreeningBmiPage);
+                case PAGES.ADMIN_EDIT_SCREENING_BMI: return AdminPage("แก้ไขข้อมูล: ดัชนีมวลกาย", AdminEditScreeningBmiPage);
+
                 case PAGES.ADMIN_SCREENING_WAIST: return AdminPage("การคัดกรอง: รอบเอว", AdminScreeningWaistPage);
                 case PAGES.ADMIN_ADD_SCREENING_WAIST: return AdminPage("เพิ่มข้อมูล: รอบเอว", AdminAddScreeningWaistPage);
+                case PAGES.ADMIN_EDIT_SCREENING_WAIST: return AdminPage("แก้ไขข้อมูล: รอบเอว", AdminEditScreeningWaistPage);
+
                 case PAGES.ADMIN_SCREENING_BP: return AdminPage("การคัดกรอง: ความดันโลหิต", AdminScreeningBpPage);
                 case PAGES.ADMIN_ADD_SCREENING_BP: return AdminPage("เพิ่มข้อมูล: ความดันโลหิต", AdminAddScreeningBpPage);
+                case PAGES.ADMIN_EDIT_SCREENING_BP: return AdminPage("แก้ไขข้อมูล: ความดันโลหิต", AdminEditScreeningBpPage);
+
                 case PAGES.ADMIN_SCREENING_SUGAR: return AdminPage("การคัดกรอง: น้ำตาลในเลือด", AdminScreeningSugarPage);
                 case PAGES.ADMIN_ADD_SCREENING_SUGAR: return AdminPage("เพิ่มข้อมูล: น้ำตาลในเลือด", AdminAddScreeningSugarPage);
+                case PAGES.ADMIN_EDIT_SCREENING_SUGAR: return AdminPage("แก้ไขข้อมูล: น้ำตาลในเลือด", AdminEditScreeningSugarPage);
+
                 case PAGES.ADMIN_SCREENING_SMOKING: return AdminPage("การคัดกรอง: การสูบบุหรี่", AdminScreeningSmokingPage);
                 case PAGES.ADMIN_ADD_SCREENING_SMOKING: return AdminPage("เพิ่มข้อมูล: การสูบบุหรี่", AdminAddScreeningSmokingPage);
+                case PAGES.ADMIN_EDIT_SCREENING_SMOKING: return AdminPage("แก้ไขข้อมูล: การสูบบุหรี่", AdminEditScreeningSmokingPage);
+
                 case PAGES.ADMIN_SCREENING_ALCOHOL: return AdminPage("การคัดกรอง: การดื่มสุรา", AdminScreeningAlcoholPage);
                 case PAGES.ADMIN_ADD_SCREENING_ALCOHOL: return AdminPage("เพิ่มข้อมูล: การดื่มสุรา", AdminAddScreeningAlcoholPage);
+                 case PAGES.ADMIN_EDIT_SCREENING_ALCOHOL: return AdminPage("แก้ไขข้อมูล: การดื่มสุรา", AdminEditScreeningAlcoholPage);
+               
                 case PAGES.ADMIN_SCREENING_DEPRESSION: return AdminPage("การคัดกรอง: ภาวะซึมเศร้า", AdminScreeningDepressionPage);
                 case PAGES.ADMIN_ADD_SCREENING_DEPRESSION: return AdminPage("เพิ่มข้อมูล: ภาวะซึมเศร้า", AdminAddScreeningDepressionPage);
+                case PAGES.ADMIN_EDIT_SCREENING_DEPRESSION: return AdminPage("แก้ไขข้อมูล: ภาวะซึมเศร้า", AdminEditScreeningDepressionPage);
                 
                 case PAGES.ADMIN_KNOWLEDGE_ASSESSMENT_RESULTS: return AdminPage("ผลการประเมินความรอบรู้", AdminKnowledgeAssessmentResults);
                 case PAGES.ADMIN_INNOVATION_ASSESSMENT_RESULTS: return AdminPage("ผลการประเมินนวัตกรรม", AdminInnovationAssessmentResults);
                 
-                // FIX: Corrected typo from ADMIN_REports to ADMIN_REPORTS.
                 case PAGES.ADMIN_REPORTS: return AdminPage("รายงาน", AdminReportsPage);
 
                 default: return AdminPage("เมนูจัดการ", AdminDashboard);
