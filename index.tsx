@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createClient } from '@supabase/supabase-js';
@@ -36,7 +35,6 @@ const PAGES = {
     ADMIN_SCREENING_DASHBOARD: 'admin_screening_dashboard',
     ADMIN_SCREENING_BMI: 'admin_screening_bmi',
     ADMIN_ADD_SCREENING_BMI: 'admin_add_screening_bmi',
-    // FIX: Added missing ADMIN_EDIT_SCREENING... pages to the PAGES object.
     ADMIN_EDIT_SCREENING_BMI: 'admin_edit_screening_bmi',
     ADMIN_SCREENING_WAIST: 'admin_screening_waist',
     ADMIN_ADD_SCREENING_WAIST: 'admin_add_screening_waist',
@@ -84,6 +82,17 @@ const addressData = {
         "ทุ่งตะโก": ["ทุ่งตะโก", "ตะโก", "ช่องไม้แก้ว", "ปากตะโก"]
     }
 };
+
+// --- Helper for creating user-friendly alerts ---
+const handleApiError = (error, contextMessage) => {
+    console.error(contextMessage, error);
+    let alertMessage = `${contextMessage}: ${error.message}`;
+    if (error.message.includes('Failed to fetch')) {
+        alertMessage += '\n\n(คำแนะนำ: ปัญหานี้อาจเกิดจากการตั้งค่า CORS ใน Supabase ของคุณ โปรดตรวจสอบการตั้งค่า API)';
+    }
+    alert(alertMessage);
+};
+
 
 // --- Reusable Components ---
 const AppHeader = ({ navigateTo, isLoggedIn, handleLogout }) => (
@@ -301,8 +310,7 @@ const CarbCounterPage = ({ navigateTo }) => {
             .insert([formData]);
 
         if (error) {
-            console.error('Error inserting data:', error);
-            alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (error.message || JSON.stringify(error)));
+            handleApiError(error, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
         } else {
             alert('บันทึกข้อมูลสำเร็จ!');
             setFormData({ // Reset form
@@ -405,8 +413,7 @@ const KnowledgeAssessmentPage = ({ navigateTo }) => {
         const { error } = await supabase.from('knowledge_assessments').insert([formData]);
         setIsSubmitting(false);
         if (error) {
-            console.error('Error submitting assessment:', error);
-            alert('เกิดข้อผิดพลาดในการส่งแบบประเมิน: ' + (error.message || JSON.stringify(error)));
+            handleApiError(error, 'เกิดข้อผิดพลาดในการส่งแบบประเมิน');
         } else {
             alert('ส่งแบบประเมินสำเร็จ!');
             navigateTo(PAGES.HOME);
@@ -540,8 +547,7 @@ const InnovationAssessmentPage = ({ navigateTo }) => {
         setIsSubmitting(false);
 
         if (error) {
-            console.error('Error submitting innovation assessment:', error);
-            alert('เกิดข้อผิดพลาดในการส่งแบบประเมิน: ' + (error.message || JSON.stringify(error)));
+            handleApiError(error, 'เกิดข้อผิดพลาดในการส่งแบบประเมิน');
         } else {
             alert('ขอบคุณสำหรับความคิดเห็น! ส่งแบบประเมินสำเร็จ');
             navigateTo(PAGES.HOME);
@@ -708,8 +714,7 @@ const RegisterPage = ({ navigateTo }) => {
         setIsSubmitting(false);
 
         if (error) {
-            console.error('Registration error:', error);
-            alert('เกิดข้อผิดพลาดในการลงทะเบียน: ' + (error.message || JSON.stringify(error)));
+            handleApiError(error, 'เกิดข้อผิดพลาดในการลงทะเบียน');
         } else {
             alert('ลงทะเบียนสำเร็จ! กรุณารอการตรวจสอบจากผู้ดูแลระบบ');
             navigateTo(PAGES.LOGIN);
@@ -1736,6 +1741,38 @@ const AdminAddScreeningDepressionPage = ({ navigateTo }) => {
 };
 
 
+// --- Generic Edit Screening Page ---
+const GenericEditScreeningPage = ({ navigateTo, params, backPage, tableName, AddFormComponent, pageTitle }) => {
+    const [formData, setFormData] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            const { data, error } = await supabase.from(tableName).select('*').eq('id', params.id).single();
+            if (error) {
+                alert('ไม่พบข้อมูลที่ต้องการแก้ไข: ' + error.message);
+                navigateTo(backPage);
+            } else {
+                // Ensure date is in YYYY-MM-DD format for the input
+                if (data.screening_date) {
+                    data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
+                }
+                setFormData(data);
+            }
+            setLoading(false);
+        };
+        fetchData();
+    }, [params.id, tableName, navigateTo, backPage]);
+
+    if (loading || !formData) {
+        return <p style={{ textAlign: 'center', padding: '2rem' }}>กำลังโหลดข้อมูล...</p>;
+    }
+
+    return <AddFormComponent navigateTo={navigateTo} initialData={formData} isEdit={true} />;
+};
+
+
 // --- All Screening Management Pages ---
 
 const AdminScreeningBmiPage = (props) => (
@@ -1991,52 +2028,279 @@ const App = () => {
                 </AdminLayout>
             );
             
-            // FIX: Removed redundant PAGES_WITH_EDIT and will use the global PAGES object directly.
-            
-            // Placeholder Edit Components
-            const createEditScreeningComponent = (backPage, tableName, FormComponent) => ({ navigateTo, params }) => {
-                const [formData, setFormData] = useState(null);
-                const [loading, setLoading] = useState(true);
-                useEffect(() => {
-                    const fetchData = async () => {
-                        const { data, error } = await supabase.from(tableName).select('*').eq('id', params.id).single();
-                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(backPage); } 
-                        else { setFormData(data); }
-                        setLoading(false);
-                    };
-                    fetchData();
-                }, [params.id]);
-
-                if (loading || !formData) return <p>กำลังโหลด...</p>;
-                
-                // We need a full edit form component here. For now, this is a placeholder structure.
-                // The actual form logic is complex and would be similar to the Add forms.
-                return <FormComponent navigateTo={navigateTo} initialData={formData} isEdit={true} />;
-            };
-            
+            // --- Edit Screening Forms (Now with full logic) ---
             const AdminEditScreeningBmiPage = ({ navigateTo, params }) => {
-                // This would contain the edit form logic. For now, it's a placeholder.
-                return <div>Edit BMI Page for ID: {params.id} (Coming Soon)</div>
-            };
-            const AdminEditScreeningWaistPage = ({ navigateTo, params }) => {
-                return <div>Edit Waist Page for ID: {params.id} (Coming Soon)</div>
-            };
-             const AdminEditScreeningBpPage = ({ navigateTo, params }) => {
-                return <div>Edit BP Page for ID: {params.id} (Coming Soon)</div>
-            };
-             const AdminEditScreeningSugarPage = ({ navigateTo, params }) => {
-                return <div>Edit Sugar Page for ID: {params.id} (Coming Soon)</div>
-            };
-             const AdminEditScreeningSmokingPage = ({ navigateTo, params }) => {
-                return <div>Edit Smoking Page for ID: {params.id} (Coming Soon)</div>
-            };
-             const AdminEditScreeningAlcoholPage = ({ navigateTo, params }) => {
-                return <div>Edit Alcohol Page for ID: {params.id} (Coming Soon)</div>
-            };
-             const AdminEditScreeningDepressionPage = ({ navigateTo, params }) => {
-                return <div>Edit Depression Page for ID: {params.id} (Coming Soon)</div>
+                const [formData, setFormData] = useState(null);
+                const [isSubmitting, setIsSubmitting] = useState(false);
+
+                useEffect(() => {
+                    const fetchRecord = async () => {
+                        const { data, error } = await supabase.from('screening_bmi').select('*').eq('id', params.id).single();
+                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_BMI); }
+                        else { 
+                            if (data.screening_date) {
+                                data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
+                            }
+                            setFormData(data);
+                        }
+                    };
+                    fetchRecord();
+                }, [params.id]);
+                
+                const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+
+                const handleSubmit = async (e) => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    const heightM = parseFloat(formData.height) / 100;
+                    const weightKg = parseFloat(formData.weight);
+                    const bmiValue = weightKg / (heightM * heightM);
+                    const bmi = bmiValue.toFixed(2);
+                    let interpretation = '';
+                    if (bmiValue < 18.5) interpretation = 'ผอม';
+                    else if (bmiValue < 23) interpretation = 'ร่างกายสมส่วน';
+                    else if (bmiValue < 25) interpretation = 'ท้วม';
+                    else if (bmiValue < 30) interpretation = 'อ้วน หรือ โรคอ้วนระดับที่ 2';
+                    else interpretation = 'อ้วนอันตราย หรือ โรคอ้วนระดับที่ 3';
+
+                    const { error } = await supabase.from('screening_bmi').update({ ...formData, bmi, interpretation, weight: weightKg, height: parseFloat(formData.height) }).eq('id', params.id);
+                    setIsSubmitting(false);
+                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
+                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_BMI); }
+                };
+
+                if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
+
+                return (
+                    <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} isEdit={true} backPage={PAGES.ADMIN_SCREENING_BMI} pageTitle="ข้อมูลดัชนีมวลกาย">
+                        <div className="form-grid">
+                            <div className="form-group"><label className="required">น้ำหนัก (kg)</label><input type="number" id="weight" value={formData.weight} onChange={handleInputChange} required /></div>
+                            <div className="form-group"><label className="required">ส่วนสูง (cm)</label><input type="number" id="height" value={formData.height} onChange={handleInputChange} required /></div>
+                        </div>
+                    </ScreeningFormLayout>
+                );
             };
 
+            const AdminEditScreeningWaistPage = ({ navigateTo, params }) => {
+                const [formData, setFormData] = useState(null);
+                const [isSubmitting, setIsSubmitting] = useState(false);
+                 useEffect(() => {
+                    const fetchRecord = async () => {
+                        const { data, error } = await supabase.from('screening_waist').select('*').eq('id', params.id).single();
+                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_WAIST); }
+                        else { 
+                             if (data.screening_date) {
+                                data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
+                            }
+                            setFormData(data); 
+                        }
+                    };
+                    fetchRecord();
+                }, [params.id]);
+                const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+                const handleSubmit = async (e) => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    const interpretation = parseFloat(formData.waist) > (parseFloat(formData.height) / 2) ? 'เกินเกณฑ์' : 'ไม่เกินเกณฑ์';
+                    const { error } = await supabase.from('screening_waist').update({ ...formData, interpretation, waist: parseFloat(formData.waist), height: parseFloat(formData.height) }).eq('id', params.id);
+                    setIsSubmitting(false);
+                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
+                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_WAIST); }
+                };
+                if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
+                return (
+                    <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} isEdit={true} backPage={PAGES.ADMIN_SCREENING_WAIST} pageTitle="ข้อมูลรอบเอว">
+                        <div className="form-grid">
+                            <div className="form-group"><label className="required">รอบเอว (cm)</label><input type="number" id="waist" value={formData.waist} onChange={handleInputChange} required /></div>
+                            <div className="form-group"><label className="required">ส่วนสูง (cm)</label><input type="number" id="height" value={formData.height} onChange={handleInputChange} required /></div>
+                        </div>
+                    </ScreeningFormLayout>
+                );
+            };
+
+            const AdminEditScreeningBpPage = ({ navigateTo, params }) => {
+                 const [formData, setFormData] = useState(null);
+                const [isSubmitting, setIsSubmitting] = useState(false);
+                 useEffect(() => {
+                    const fetchRecord = async () => {
+                        const { data, error } = await supabase.from('screening_bp').select('*').eq('id', params.id).single();
+                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_BP); }
+                        else { 
+                             if (data.screening_date) {
+                                data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
+                            }
+                            setFormData(data); 
+                        }
+                    };
+                    fetchRecord();
+                }, [params.id]);
+                const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+                const handleSubmit = async (e) => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    const sys = parseInt(formData.systolic);
+                    const dia = parseInt(formData.diastolic);
+                    let interpretation = 'ปกติ';
+                    if ((sys >= 120 && sys <= 139) || (dia >= 80 && dia <= 89)) interpretation = 'กลุ่มเสี่ยง';
+                    if (sys >= 140 || dia >= 90) interpretation = 'สงสัยป่วย';
+                    const { error } = await supabase.from('screening_bp').update({ ...formData, interpretation, systolic: sys, diastolic: dia }).eq('id', params.id);
+                    setIsSubmitting(false);
+                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
+                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_BP); }
+                };
+                if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
+                return (
+                    <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} isEdit={true} backPage={PAGES.ADMIN_SCREENING_BP} pageTitle="ข้อมูลความดันโลหิต">
+                        <div className="form-grid">
+                            <div className="form-group"><label className="required">ค่าความดันตัวบน (Systolic)</label><input type="number" id="systolic" value={formData.systolic} onChange={handleInputChange} required /></div>
+                            <div className="form-group"><label className="required">ค่าความดันตัวล่าง (Diastolic)</label><input type="number" id="diastolic" value={formData.diastolic} onChange={handleInputChange} required /></div>
+                        </div>
+                    </ScreeningFormLayout>
+                );
+            };
+
+            const AdminEditScreeningSugarPage = ({ navigateTo, params }) => {
+                const [formData, setFormData] = useState(null);
+                const [isSubmitting, setIsSubmitting] = useState(false);
+                 useEffect(() => {
+                    const fetchRecord = async () => {
+                        const { data, error } = await supabase.from('screening_sugar').select('*').eq('id', params.id).single();
+                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_SUGAR); }
+                        else { 
+                             if (data.screening_date) {
+                                data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
+                            }
+                            setFormData(data); 
+                        }
+                    };
+                    fetchRecord();
+                }, [params.id]);
+                const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+                const handleSubmit = async (e) => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    const level = parseInt(formData.sugar_level);
+                    let interpretation = 'ปกติ';
+                    if (level >= 100 && level <= 125) interpretation = 'กลุ่มเสี่ยง';
+                    if (level >= 126) interpretation = 'สงสัยป่วย';
+                    const { error } = await supabase.from('screening_sugar').update({ ...formData, interpretation, sugar_level: level }).eq('id', params.id);
+                    setIsSubmitting(false);
+                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
+                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_SUGAR); }
+                };
+                if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
+                return (
+                    <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} isEdit={true} backPage={PAGES.ADMIN_SCREENING_SUGAR} pageTitle="ข้อมูลระดับน้ำตาลในเลือด">
+                        <div className="form-grid">
+                            <div className="form-group"><label className="required">ระดับน้ำตาล (mg/dL)</label><input type="number" id="sugar_level" value={formData.sugar_level} onChange={handleInputChange} required /></div>
+                            <div className="form-group"><label className="required">การอดอาหาร</label><select id="fasting" value={formData.fasting} onChange={handleInputChange}><option>อด</option><option>ไม่อด</option></select></div>
+                        </div>
+                    </ScreeningFormLayout>
+                );
+            };
+
+            const AdminEditScreeningSmokingPage = ({ navigateTo, params }) => {
+                const [formData, setFormData] = useState(null);
+                const [isSubmitting, setIsSubmitting] = useState(false);
+                 useEffect(() => {
+                    const fetchRecord = async () => {
+                        const { data, error } = await supabase.from('screening_smoking').select('*').eq('id', params.id).single();
+                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_SMOKING); }
+                        else {
+                             if (data.screening_date) {
+                                data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
+                            }
+                            setFormData(data); 
+                        }
+                    };
+                    fetchRecord();
+                }, [params.id]);
+                const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+                const handleSubmit = async (e) => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    const interpretation = formData.smoking_status === 'ไม่เคยสูบในช่วงชีวิตที่ผ่านมา' ? 'ไม่มีความเสี่ยง' : 'มีความเสี่ยง';
+                    const { error } = await supabase.from('screening_smoking').update({ ...formData, interpretation }).eq('id', params.id);
+                    setIsSubmitting(false);
+                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
+                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_SMOKING); }
+                };
+                if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
+                return (
+                    <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} isEdit={true} backPage={PAGES.ADMIN_SCREENING_SMOKING} pageTitle="ข้อมูลการสูบบุหรี่">
+                         <div className="form-group"><label className="required">สถานะการสูบบุหรี่</label><select id="smoking_status" value={formData.smoking_status} onChange={handleInputChange}><option>ไม่เคยสูบในช่วงชีวิตที่ผ่านมา</option><option>เคยสูบแต่เลิกมาแล้วมากกว่า 1 เดือน</option><option>ยังคงสูบอยู่</option></select></div>
+                    </ScreeningFormLayout>
+                );
+            };
+
+            const AdminEditScreeningAlcoholPage = ({ navigateTo, params }) => {
+                 const [formData, setFormData] = useState(null);
+                const [isSubmitting, setIsSubmitting] = useState(false);
+                 useEffect(() => {
+                    const fetchRecord = async () => {
+                        const { data, error } = await supabase.from('screening_alcohol').select('*').eq('id', params.id).single();
+                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_ALCOHOL); }
+                        else { 
+                            if (data.screening_date) {
+                                data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
+                            }
+                            setFormData(data); 
+                        }
+                    };
+                    fetchRecord();
+                }, [params.id]);
+                const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+                const handleSubmit = async (e) => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    const interpretation = formData.alcohol_status === 'ไม่เคยดื่มเลยในช่วงชีวิตที่ผ่านมา' ? 'ไม่มีความเสี่ยง' : 'มีความเสี่ยง';
+                    const { error } = await supabase.from('screening_alcohol').update({ ...formData, interpretation }).eq('id', params.id);
+                    setIsSubmitting(false);
+                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
+                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_ALCOHOL); }
+                };
+                if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
+                return (
+                    <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} isEdit={true} backPage={PAGES.ADMIN_SCREENING_ALCOHOL} pageTitle="ข้อมูลการดื่มแอลกอฮอล์">
+                        <div className="form-group"><label className="required">สถานะการดื่มแอลกอฮอล์</label><select id="alcohol_status" value={formData.alcohol_status} onChange={handleInputChange}><option>ไม่เคยดื่มเลยในช่วงชีวิตที่ผ่านมา</option><option>เคยดื่มแต่ปัจจุบันไม่ได้ดื่มแล้ว</option><option>ยังคงดื่มอยู่</option></select></div>
+                    </ScreeningFormLayout>
+                );
+            };
+
+            const AdminEditScreeningDepressionPage = ({ navigateTo, params }) => {
+                 const [formData, setFormData] = useState(null);
+                const [isSubmitting, setIsSubmitting] = useState(false);
+                 useEffect(() => {
+                    const fetchRecord = async () => {
+                        const { data, error } = await supabase.from('screening_depression').select('*').eq('id', params.id).single();
+                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_DEPRESSION); }
+                        else { 
+                            if (data.screening_date) {
+                                data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
+                            }
+                            setFormData(data); 
+                        }
+                    };
+                    fetchRecord();
+                }, [params.id]);
+                const handleInputChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+                const handleSubmit = async (e) => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    const interpretation = formData.q1_sad === 'มี' || formData.q2_bored === 'มี' ? 'มีความเสี่ยง' : 'ไม่มีความเสี่ยง';
+                    const { error } = await supabase.from('screening_depression').update({ ...formData, interpretation }).eq('id', params.id);
+                    setIsSubmitting(false);
+                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
+                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_DEPRESSION); }
+                };
+                if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
+                return (
+                    <ScreeningFormLayout {...{ navigateTo, handleSubmit, isSubmitting, formData, handleInputChange }} isEdit={true} backPage={PAGES.ADMIN_SCREENING_DEPRESSION} pageTitle="ข้อมูลภาวะซึมเศร้า">
+                         <div className="form-group"><label className="required">ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ ท่านรู้สึก หดหู่ เศร้า หรือท้อแท้สิ้นหวัง หรือไม่</label><select id="q1_sad" value={formData.q1_sad} onChange={handleInputChange}><option>ไม่มี</option><option>มี</option></select></div>
+                         <div className="form-group"><label className="required">ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ ท่านรู้สึก เบื่อ ทำอะไรก็ไม่เพลิดเพลิน หรือไม่</label><select id="q2_bored" value={formData.q2_bored} onChange={handleInputChange}><option>ไม่มี</option><option>มี</option></select></div>
+                    </ScreeningFormLayout>
+                );
+            };
 
             switch (page.name) {
                 case PAGES.ADMIN_DASHBOARD: return AdminPage("เมนูจัดการ", AdminDashboard);
