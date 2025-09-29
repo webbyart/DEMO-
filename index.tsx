@@ -77,7 +77,7 @@ const AppHeader = ({ navigateTo, isLoggedIn, handleLogout }) => (
 
 const AppFooter = () => (
     <footer className="app-footer">
-        <p>สงวนลิขสิทธิ์ © 2025 สำนักงานสาธารณสุขอำเภอท่าแซะ | พัฒนาระบบโดย Health Station @ ท่าแซะ </p>
+        <p>สงวนลิขสิทธิ์ © 2024 สำนักงานสาธารณสุขจังหวัดชุมพร | พัฒนาระบบโดย Health Station @ ท่าแซะ</p>
     </footer>
 );
 
@@ -538,35 +538,96 @@ const LoginPage = ({ navigateTo, handleLogin }) => (
     </div>
 );
 
-const RegisterPage = ({ navigateTo }) => (
-     <div className="container" style={{maxWidth: '500px'}}>
-        <div className="page-container">
-            <PageHeader title="ลงทะเบียน" subtitle="สร้างบัญชีผู้ใช้ใหม่สำหรับเจ้าหน้าที่" />
-            <form onSubmit={(e) => { e.preventDefault(); alert('ลงทะเบียนสำเร็จ!'); navigateTo(PAGES.LOGIN); }}>
-                <div className="form-group">
-                    <label className="required" htmlFor="fullname">ชื่อ-สกุล</label>
-                    <input type="text" id="fullname" required />
-                </div>
-                <div className="form-group">
-                    <label className="required" htmlFor="reg-username">ชื่อผู้ใช้</label>
-                    <input type="text" id="reg-username" required />
-                </div>
-                <div className="form-group">
-                    <label className="required" htmlFor="reg-password">รหัสผ่าน</label>
-                    <input type="password" id="reg-password" required />
-                </div>
-                 <div className="form-group">
-                    <label className="required" htmlFor="confirm-password">ยืนยันรหัสผ่าน</label>
-                    <input type="password" id="confirm-password" required />
-                </div>
-                <div className="form-actions">
-                    <button type="button" className="btn btn-outline" onClick={() => navigateTo(PAGES.LOGIN)}>กลับไปหน้าเข้าสู่ระบบ</button>
-                    <button type="submit" className="btn btn-primary">ลงทะเบียน</button>
-                </div>
-            </form>
+const RegisterPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({
+        title: '',
+        full_name: '',
+        id_card: '',
+        username: '',
+        password: '',
+        confirm_password: '',
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleInputChange = (e) => {
+        const { id, value } = e.target;
+        setFormData({ ...formData, [id]: value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (formData.password !== formData.confirm_password) {
+            alert('รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน');
+            return;
+        }
+        setIsSubmitting(true);
+        const { error } = await supabase
+            .from('users')
+            .insert([{
+                title: formData.title,
+                full_name: formData.full_name,
+                id_card: formData.id_card,
+                username: formData.username,
+                password: formData.password, // In a real app, this should be hashed!
+                status: 'รอตรวจสอบ',
+            }]);
+        
+        setIsSubmitting(false);
+
+        if (error) {
+            console.error('Registration error:', error);
+            alert('เกิดข้อผิดพลาดในการลงทะเบียน: ' + error.message);
+        } else {
+            alert('ลงทะเบียนสำเร็จ! กรุณารอการตรวจสอบจากผู้ดูแลระบบ');
+            navigateTo(PAGES.LOGIN);
+        }
+    };
+
+    return (
+        <div className="container" style={{maxWidth: '500px'}}>
+            <div className="page-container">
+                <PageHeader title="ลงทะเบียน" subtitle="สร้างบัญชีผู้ใช้ใหม่สำหรับเจ้าหน้าที่" />
+                <form onSubmit={handleSubmit}>
+                     <div className="form-group">
+                        <label className="required" htmlFor="title">คำนำหน้า</label>
+                        <select id="title" value={formData.title} onChange={handleInputChange} required>
+                            <option value="">-- เลือกคำนำหน้า --</option>
+                            <option>นาย</option>
+                            <option>นางสาว</option>
+                            <option>นาง</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label className="required" htmlFor="full_name">ชื่อ-สกุล</label>
+                        <input type="text" id="full_name" value={formData.full_name} onChange={handleInputChange} required />
+                    </div>
+                     <div className="form-group">
+                        <label className="required" htmlFor="id_card">เลขประจำตัวประชาชน</label>
+                        <input type="text" id="id_card" value={formData.id_card} onChange={handleInputChange} required />
+                    </div>
+                    <div className="form-group">
+                        <label className="required" htmlFor="username">ชื่อผู้ใช้</label>
+                        <input type="text" id="username" value={formData.username} onChange={handleInputChange} required />
+                    </div>
+                    <div className="form-group">
+                        <label className="required" htmlFor="password">รหัสผ่าน</label>
+                        <input type="password" id="password" value={formData.password} onChange={handleInputChange} required />
+                    </div>
+                     <div className="form-group">
+                        <label className="required" htmlFor="confirm_password">ยืนยันรหัสผ่าน</label>
+                        <input type="password" id="confirm_password" value={formData.confirm_password} onChange={handleInputChange} required />
+                    </div>
+                    <div className="form-actions">
+                        <button type="button" className="btn btn-outline" onClick={() => navigateTo(PAGES.LOGIN)}>กลับไปหน้าเข้าสู่ระบบ</button>
+                        <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                            {isSubmitting ? 'กำลังลงทะเบียน...' : 'ลงทะเบียน'}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 
 // --- Admin Pages ---
@@ -618,6 +679,21 @@ const AdminDashboard = ({ navigateTo }) => (
                     <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_SCREENING_BMI); }}>จัดการ →</a>
                 </div>
             </div>
+            <div className="admin-card">
+                <div>
+                    <div className="admin-card-header">
+                        <div className="icon"><i className="fa-solid fa-clipboard-check"></i></div>
+                        <h3>ผลการประเมิน</h3>
+                    </div>
+                    <div className="admin-card-body">
+                        <p>8,910</p>
+                        <span>ผลลัพธ์</span>
+                    </div>
+                </div>
+                 <div className="admin-card-footer">
+                    <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_EVALUATION_RESULTS); }}>จัดการ →</a>
+                </div>
+            </div>
              <div className="admin-card">
                 <div>
                     <div className="admin-card-header">
@@ -636,6 +712,266 @@ const AdminDashboard = ({ navigateTo }) => (
         </div>
     </>
 );
+
+const AdminUserManagement = ({ navigateTo }) => {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchUsers = async () => {
+        setLoading(true);
+        const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+        if (error) {
+            console.error('Error fetching users:', error);
+            alert('ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
+        } else {
+            setUsers(data);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const handleDelete = async (userId) => {
+        if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้?')) {
+            const { error } = await supabase.from('users').delete().eq('id', userId);
+            if (error) {
+                alert('เกิดข้อผิดพลาดในการลบผู้ใช้: ' + error.message);
+            } else {
+                alert('ลบผู้ใช้สำเร็จ');
+                fetchUsers(); // Refresh the list
+            }
+        }
+    };
+
+    if (loading) {
+        return <p style={{ textAlign: 'center', padding: '2rem' }}>กำลังโหลดข้อมูล...</p>;
+    }
+
+    return (
+        <>
+            <div className="table-toolbar">
+                <div className="search-filter">
+                    <input type="text" placeholder="ค้นหา..." />
+                    <button className="btn"><i className="fa-solid fa-filter"></i> กรอง</button>
+                </div>
+                <button className="btn btn-primary"><i className="fa-solid fa-plus"></i> เพิ่มใหม่</button>
+            </div>
+            <div className="table-responsive">
+                <table className="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>คำนำหน้า</th>
+                            <th>ชื่อ-สกุล</th>
+                            <th>เลขประจำตัวประชาชน</th>
+                            <th>สถานะการใช้งาน</th>
+                            <th>การดำเนินการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map((user, index) => (
+                            <tr key={user.id}>
+                                <td>{index + 1}</td>
+                                <td>{user.title}</td>
+                                <td>{user.full_name}</td>
+                                <td>{user.id_card}</td>
+                                <td>
+                                    <span className={`status ${user.status === 'รอตรวจสอบ' ? 'status-pending' : 'status-normal'}`}>
+                                        {user.status}
+                                    </span>
+                                </td>
+                                <td className="table-actions">
+                                    <button className="btn btn-outline" style={{padding: '0.25rem 0.5rem', marginRight: '0.5rem'}}>ดู/แก้ไข</button>
+                                    <button className="btn btn-danger" style={{padding: '0.25rem 0.5rem'}} onClick={() => handleDelete(user.id)}>ลบ</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            <div className="pagination">
+                <button className="btn btn-outline">&lt; ก่อนหน้า</button>
+                <button className="btn btn-primary">1</button>
+                <button className="btn btn-outline">ถัดไป &gt;</button>
+            </div>
+        </>
+    );
+};
+
+const AdminHealthStationManagement = ({ navigateTo }) => {
+    const [stations, setStations] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchStations = async () => {
+        setLoading(true);
+        const { data, error } = await supabase.from('health_stations').select('*').order('created_at', { ascending: false });
+        if (error) {
+            console.error('Error fetching stations:', error);
+            alert('ไม่สามารถโหลดข้อมูล Health Station ได้');
+        } else {
+            setStations(data);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchStations();
+    }, []);
+
+    const handleDelete = async (stationId) => {
+        if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบ Health Station นี้?')) {
+            const { error } = await supabase.from('health_stations').delete().eq('id', stationId);
+            if (error) {
+                alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
+            } else {
+                alert('ลบ Health Station สำเร็จ');
+                fetchStations(); // Refresh list
+            }
+        }
+    };
+    
+    if (loading) {
+        return <p style={{ textAlign: 'center', padding: '2rem' }}>กำลังโหลดข้อมูล...</p>;
+    }
+
+    return (
+        <>
+            <div className="table-toolbar">
+                <div className="search-filter">
+                    <input type="text" placeholder="ค้นหา..." />
+                    <button className="btn"><i className="fa-solid fa-filter"></i> กรอง</button>
+                </div>
+                <button className="btn btn-primary"><i className="fa-solid fa-plus"></i> เพิ่มข้อมูล</button>
+            </div>
+            <div className="table-responsive">
+                <table className="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>รหัสหน่วยบริการ</th>
+                            <th>ชื่อจุดบริการ Health Station</th>
+                            <th>สถานะการให้บริการ</th>
+                            <th>การดำเนินการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {stations.map((station, index) => (
+                             <tr key={station.id}>
+                                <td>{index + 1}</td>
+                                <td>{station.service_code || 'N/A'}</td>
+                                <td>{station.name}</td>
+                                <td>
+                                    <span className={`status ${station.status === 'เปิดให้บริการ' ? 'status-open' : 'status-closed'}`}>
+                                        {station.status}
+                                    </span>
+                                </td>
+                                <td className="table-actions">
+                                    <button className="btn btn-outline" style={{padding: '0.25rem 0.5rem', marginRight: '0.5rem'}}>ดู/แก้ไข</button>
+                                    <button className="btn btn-danger" style={{padding: '0.25rem 0.5rem'}} onClick={() => handleDelete(station.id)}>ลบ</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+             <div className="pagination">
+                <button className="btn btn-outline">&lt; ก่อนหน้า</button>
+                <button className="btn btn-primary">1</button>
+                <button className="btn btn-outline">ถัดไป &gt;</button>
+            </div>
+        </>
+    );
+};
+
+const AdminEvaluationResults = ({ navigateTo }) => {
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchResults = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('screening_results')
+            .select('*')
+            .order('evaluation_date', { ascending: false });
+        
+        if (error) {
+            console.error('Error fetching evaluation results:', error);
+            alert('ไม่สามารถโหลดข้อมูลผลการประเมินได้');
+        } else {
+            setResults(data);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchResults();
+    }, []);
+
+    const handleDelete = async (resultId) => {
+        if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผลการประเมินนี้?')) {
+            const { error } = await supabase.from('screening_results').delete().eq('id', resultId);
+            if (error) {
+                alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
+            } else {
+                alert('ลบผลการประเมินสำเร็จ');
+                fetchResults(); // Refresh list
+            }
+        }
+    };
+
+    if (loading) {
+        return <p style={{ textAlign: 'center', padding: '2rem' }}>กำลังโหลดข้อมูล...</p>;
+    }
+
+    return (
+        <>
+            <div className="table-toolbar">
+                <div className="search-filter">
+                    <input type="text" placeholder="ค้นหาตามชื่อ..." />
+                    <button className="btn"><i className="fa-solid fa-filter"></i> กรอง</button>
+                </div>
+                <button className="btn btn-primary"><i className="fa-solid fa-plus"></i> เพิ่มใหม่</button>
+            </div>
+            <div className="table-responsive">
+                <table className="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>วันที่ประเมิน</th>
+                            <th>ชื่อ-สกุล</th>
+                            <th>ประเภทการประเมิน</th>
+                            <th>ผลการประเมิน</th>
+                            <th>การดำเนินการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {results.map((result, index) => (
+                             <tr key={result.id}>
+                                <td>{index + 1}</td>
+                                <td>{new Date(result.evaluation_date).toLocaleDateString('th-TH')}</td>
+                                <td>{result.full_name}</td>
+                                <td>{result.evaluation_type}</td>
+                                <td>{result.result}</td>
+                                <td className="table-actions">
+                                    <button className="btn btn-outline" style={{padding: '0.25rem 0.5rem', marginRight: '0.5rem'}}>ดู/แก้ไข</button>
+                                    <button className="btn btn-danger" style={{padding: '0.25rem 0.5rem'}} onClick={() => handleDelete(result.id)}>ลบ</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+             <div className="pagination">
+                <button className="btn btn-outline">&lt; ก่อนหน้า</button>
+                <button className="btn btn-primary">1</button>
+                <button className="btn btn-outline">ถัดไป &gt;</button>
+            </div>
+        </>
+    );
+};
+
 
 const AdminScreeningLayout = ({ navigateTo, activeTab, children, onTabClick }) => (
     <>
@@ -724,7 +1060,7 @@ const AdminLayout = ({ children, title, navigateTo }) => (
                 </a>
                 <h1>{title}</h1>
             </div>
-            <button className="btn btn-primary"><i className="fa-solid fa-plus"></i> เพิ่มใหม่</button>
+            {/* The "Add New" button is moved to child components for better state management */}
         </header>
         <main className="admin-main">
             {children}
@@ -781,6 +1117,24 @@ const App = () => {
                             <AdminDashboard navigateTo={navigateTo} />
                         </AdminLayout>
                     );
+                case PAGES.ADMIN_USER_MANAGEMENT:
+                    return (
+                        <AdminLayout title="การจัดการผู้ใช้" navigateTo={navigateTo}>
+                            <AdminUserManagement navigateTo={navigateTo} />
+                        </AdminLayout>
+                    );
+                case PAGES.ADMIN_HEALTH_STATION_MANAGEMENT:
+                     return (
+                        <AdminLayout title="การจัดการ Health Station" navigateTo={navigateTo}>
+                            <AdminHealthStationManagement navigateTo={navigateTo} />
+                        </AdminLayout>
+                    );
+                case PAGES.ADMIN_EVALUATION_RESULTS:
+                     return (
+                        <AdminLayout title="ผลการประเมิน" navigateTo={navigateTo}>
+                            <AdminEvaluationResults navigateTo={navigateTo} />
+                        </AdminLayout>
+                    );
                 case PAGES.ADMIN_SCREENING_BMI:
                 case PAGES.ADMIN_SCREENING_WAIST:
                 case PAGES.ADMIN_SCREENING_BP:
@@ -798,7 +1152,12 @@ const App = () => {
                         </AdminLayout>
                     );
                 default:
-                    return <HomePage navigateTo={navigateTo} />;
+                    // Fallback to dashboard if logged in and page not found
+                    return (
+                         <AdminLayout title="เมนูจัดการ" navigateTo={navigateTo}>
+                            <AdminDashboard navigateTo={navigateTo} />
+                        </AdminLayout>
+                    );
             }
         }
     };
