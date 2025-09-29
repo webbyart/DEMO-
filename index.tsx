@@ -27,22 +27,33 @@ const PAGES = {
     // Admin Pages
     ADMIN_DASHBOARD: 'admin_dashboard',
     ADMIN_USER_MANAGEMENT: 'admin_user_management',
+    ADMIN_ADD_USER: 'admin_add_user',
     ADMIN_HEALTH_STATION_MANAGEMENT: 'admin_health_station_management',
+    ADMIN_ADD_HEALTH_STATION: 'admin_add_health_station',
     
+    ADMIN_SCREENING_DASHBOARD: 'admin_screening_dashboard',
     ADMIN_SCREENING_BMI: 'admin_screening_bmi',
+    ADMIN_ADD_SCREENING_BMI: 'admin_add_screening_bmi',
     ADMIN_SCREENING_WAIST: 'admin_screening_waist',
+    ADMIN_ADD_SCREENING_WAIST: 'admin_add_screening_waist',
     ADMIN_SCREENING_BP: 'admin_screening_bp',
+    ADMIN_ADD_SCREENING_BP: 'admin_add_screening_bp',
     ADMIN_SCREENING_SUGAR: 'admin_screening_sugar',
+    ADMIN_ADD_SCREENING_SUGAR: 'admin_add_screening_sugar',
     ADMIN_SCREENING_SMOKING: 'admin_screening_smoking',
+    ADMIN_ADD_SCREENING_SMOKING: 'admin_add_screening_smoking',
     ADMIN_SCREENING_ALCOHOL: 'admin_screening_alcohol',
+    ADMIN_ADD_SCREENING_ALCOHOL: 'admin_add_screening_alcohol',
     ADMIN_SCREENING_DEPRESSION: 'admin_screening_depression',
+    ADMIN_ADD_SCREENING_DEPRESSION: 'admin_add_screening_depression',
     
-    ADMIN_KNOWLEDGE_REGISTRY: 'admin_knowledge_registry',
-    ADMIN_EVALUATION_RESULTS: 'admin_evaluation_results',
+    ADMIN_KNOWLEDGE_ASSESSMENT_RESULTS: 'admin_knowledge_assessment_results',
+    ADMIN_INNOVATION_ASSESSMENT_RESULTS: 'admin_innovation_assessment_results',
+    ADMIN_EVALUATION_RESULTS: 'admin_evaluation_results', // This could be deprecated or reused
     ADMIN_REPORTS: 'admin_reports',
 };
 
-// --- MOCK DATA (จะถูกแทนที่ด้วยข้อมูลจาก Supabase) ---
+
 const healthUnits = [
     { id: 1, name: 'รพ.สต.บ้านแก่งกระทั่ง', lineId: '@healthstation1' },
     { id: 2, name: 'รพ.สต.ปากทรง', lineId: '@healthstation2' },
@@ -51,13 +62,29 @@ const healthUnits = [
     { id: 5, name: 'รพ.สต.บางมะพร้าว', lineId: '@healthstation5' },
 ];
 
+const addressData = {
+    "ชุมพร": {
+        "เมืองชุมพร": ["ตากแดด", "บางหมาก", "นาทุ่ง", "บางลึก", "ขุนกระทิง", "ทุ่งคา", "วังไผ่", "หาดทรายรี", "ถ้ำสิงห์", "นาชะอัง", "ท่ายาง", "วังใหม่", "บ้านนา", "หาดพันไกร", "วิสัยเหนือ", "บางสน"],
+        "ท่าแซะ": ["ท่าแซะ", "หงษ์เจริญ", "นากระตาม", "คุริง", "สลุย", "ท่าข้าม", "รับร่อ", "สองพี่น้อง", "ทรัพย์อนันต์", "หินแก้ว"],
+        "ปะทิว": ["ปะทิว", "บางสน", "ทะเลทรัพย์", "สะพลี", "ชุมโค", "ดอนยาง", "เขาไชยราช"],
+        "หลังสวน": ["หลังสวน", "ขันเงิน", "พ้อแดง", "บ้านควน", "บางมะพร้าว", "นาขา", "แหลมทราย", "วังตะกอ", "หาดยาย", "ท่ามะพลา", "บางน้ำจืด", "ปากน้ำ", "นาพญา"],
+        "ละแม": ["ละแม", "ทุ่งหลวง", "สวนแตง", "ทุ่งคาวัด"],
+        "พะโต๊ะ": ["พะโต๊ะ", "ปากทรง", "ปังหวาน", "พระรักษ์"],
+        "สวี": ["สวี", "นาโพธิ์", "ทุ่งระยะ", "ท่าหิน", "ปากแพรก", "ด่านสวี", "วิสัยใต้", "เขาทะลุ", "เขาค่าย", "ครน", "ในวง"],
+        "ทุ่งตะโก": ["ทุ่งตะโก", "ตะโก", "ช่องไม้แก้ว", "ปากตะโก"]
+    }
+};
+
 // --- Reusable Components ---
 const AppHeader = ({ navigateTo, isLoggedIn, handleLogout }) => (
     <header className="app-header">
         <div className="header-content">
             <div className="logo-container" onClick={() => navigateTo(PAGES.HOME)} style={{ cursor: 'pointer' }}>
-                <img src="https://i.imgur.com/8f1CRaE.png" alt="Health Station Logo" />
-                <h1>Health Station <span>ท่าแซะ</span></h1>
+                <img src="https://storage.googleapis.com/fpl-prompt-images/3468961719/original_image.png" alt="Thasae District Public Health Office Logo" />
+                <div className="logo-text">
+                    <h2>สำนักงานสาธารณสุข <span>อำเภอท่าแซะ</span></h2>
+                    <p>Thasae District Public Health Office</p>
+                </div>
             </div>
             <nav className="main-nav">
                 <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.HOME); }}>หน้าหลัก</a>
@@ -225,18 +252,34 @@ const CarbCounterPage = ({ navigateTo }) => {
     const [showConsent, setShowConsent] = useState(true);
     const [formData, setFormData] = useState({
         id_card: '', title: '', first_name: '', last_name: '',
-        house_no: '', moo: '', province: '', district: '', sub_district: '',
+        house_no: '', moo: '', province: 'ชุมพร', district: '', sub_district: '',
         age: '', gender: '', height: '', weight: '', activity: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const districts = formData.province ? Object.keys(addressData[formData.province]) : [];
+    const subDistricts = formData.district ? addressData[formData.province][formData.district] : [];
 
     const handleInputChange = (e) => {
         const { id, value, name } = e.target;
-        if (name === 'gender') {
-            setFormData({ ...formData, gender: value });
-        } else {
-            setFormData({ ...formData, [id]: value });
-        }
+
+        setFormData(prevData => {
+            const newData = { ...prevData };
+            if (name === 'gender') {
+                newData.gender = value;
+            } else {
+                 newData[id] = value;
+            }
+            // Reset dependent fields
+            if (id === 'province') {
+                newData.district = '';
+                newData.sub_district = '';
+            }
+            if (id === 'district') {
+                newData.sub_district = '';
+            }
+            return newData;
+        });
     };
     
     const handleSubmit = async (e) => {
@@ -244,7 +287,7 @@ const CarbCounterPage = ({ navigateTo }) => {
         setIsSubmitting(true);
         
         const { data, error } = await supabase
-            .from('carb_counting_data') // ตรวจสอบให้แน่ใจว่าชื่อตารางถูกต้อง
+            .from('carb_counting_data') 
             .insert([formData]);
 
         if (error) {
@@ -254,7 +297,7 @@ const CarbCounterPage = ({ navigateTo }) => {
             alert('บันทึกข้อมูลสำเร็จ!');
             setFormData({ // Reset form
                 id_card: '', title: '', first_name: '', last_name: '',
-                house_no: '', moo: '', province: '', district: '', sub_district: '',
+                house_no: '', moo: '', province: 'ชุมพร', district: '', sub_district: '',
                 age: '', gender: '', height: '', weight: '', activity: ''
             });
             navigateTo(PAGES.HOME);
@@ -287,9 +330,9 @@ const CarbCounterPage = ({ navigateTo }) => {
                     <div className="form-grid">
                         <div className="form-group"><label className="required" htmlFor="house_no">บ้านเลขที่</label><input type="text" id="house_no" value={formData.house_no} onChange={handleInputChange}/></div>
                         <div className="form-group"><label htmlFor="moo">หมู่ที่</label><input type="text" id="moo" value={formData.moo} onChange={handleInputChange}/></div>
-                        <div className="form-group"><label className="required" htmlFor="province">จังหวัด</label><select id="province" value={formData.province} onChange={handleInputChange}><option>-- เลือกจังหวัด --</option></select></div>
-                        <div className="form-group"><label className="required" htmlFor="district">อำเภอ</label><select id="district" value={formData.district} onChange={handleInputChange}><option>-- เลือกอำเภอ --</option></select></div>
-                        <div className="form-group"><label className="required" htmlFor="sub_district">ตำบล</label><select id="sub_district" value={formData.sub_district} onChange={handleInputChange}><option>-- เลือกตำบล --</option></select></div>
+                        <div className="form-group"><label className="required" htmlFor="province">จังหวัด</label><select id="province" value={formData.province} onChange={handleInputChange}><option value="ชุมพร">ชุมพร</option></select></div>
+                        <div className="form-group"><label className="required" htmlFor="district">อำเภอ</label><select id="district" value={formData.district} onChange={handleInputChange}><option value="">-- เลือกอำเภอ --</option>{districts.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                        <div className="form-group"><label className="required" htmlFor="sub_district">ตำบล</label><select id="sub_district" value={formData.sub_district} onChange={handleInputChange}><option value="">-- เลือกตำบล --</option>{subDistricts.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                     </div>
                      <h2 className="form-section-header">ข้อมูลนับคาร์บ</h2>
                     <div className="form-grid">
@@ -323,70 +366,110 @@ const CarbCounterPage = ({ navigateTo }) => {
     );
 };
 
-const KnowledgeAssessmentPage = ({ navigateTo }) => (
-    <div className="container">
-        <div className="page-container">
-            <PageHeader title="แบบประเมินความรอบรู้ด้านสุขภาพและพฤติกรรมสุขภาพ" subtitle="สำหรับประชาชนวัยทำงาน ในหมู่บ้านปรับเปลี่ยนพฤติกรรมสุขภาพ" />
-             <form onSubmit={e => e.preventDefault()}>
-                <div className="form-grid" style={{alignItems: 'flex-end'}}>
+const KnowledgeAssessmentPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({
+        evaluation_date: new Date().toISOString().split('T')[0],
+        full_name: '',
+        house_no: '',
+        moo: '',
+        sub_district: '',
+        district: '',
+        province: '',
+        q1: null,
+        q2: null,
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleInputChange = (e) => {
+        const { id, value, name, type } = e.target;
+        if (type === 'radio') {
+            setFormData({ ...formData, [name]: value });
+        } else {
+            setFormData({ ...formData, [id || name]: value });
+        }
+    };
+    
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const { error } = await supabase.from('knowledge_assessments').insert([formData]);
+        setIsSubmitting(false);
+        if (error) {
+            console.error('Error submitting assessment:', error);
+            alert('เกิดข้อผิดพลาดในการส่งแบบประเมิน: ' + error.message);
+        } else {
+            alert('ส่งแบบประเมินสำเร็จ!');
+            navigateTo(PAGES.HOME);
+        }
+    };
+
+    return (
+        <div className="container">
+            <div className="page-container">
+                <PageHeader title="แบบประเมินความรอบรู้ด้านสุขภาพและพฤติกรรมสุขภาพ" subtitle="สำหรับประชาชนวัยทำงาน ในหมู่บ้านปรับเปลี่ยนพฤติกรรมสุขภาพ" />
+                 <form onSubmit={handleSubmit}>
+                    <div className="form-grid" style={{alignItems: 'flex-end'}}>
+                        <div className="form-group">
+                            <label>วันที่ประเมิน</label>
+                            <input type="date" id="evaluation_date" value={formData.evaluation_date} onChange={handleInputChange}/>
+                        </div>
+                         <div className="form-group">
+                            <label className="required">ชื่อ - สกุล</label>
+                            <input type="text" id="full_name" placeholder="กรอกชื่อ-สกุล" value={formData.full_name} onChange={handleInputChange} required />
+                        </div>
+                    </div>
+                    <div className="form-grid">
+                         <div className="form-group">
+                            <label className="required">บ้านเลขที่</label>
+                            <input type="text" id="house_no" value={formData.house_no} onChange={handleInputChange} required />
+                        </div>
+                         <div className="form-group">
+                            <label>หมู่</label>
+                            <input type="text" id="moo" value={formData.moo} onChange={handleInputChange} />
+                        </div>
+                         <div className="form-group">
+                            <label>ตำบล</label>
+                            <input type="text" id="sub_district" value={formData.sub_district} onChange={handleInputChange} />
+                        </div>
+                        <div className="form-group">
+                            <label>อำเภอ</label>
+                            <input type="text" id="district" value={formData.district} onChange={handleInputChange} />
+                        </div>
+                        <div className="form-group">
+                            <label>จังหวัด</label>
+                            <input type="text" id="province" value={formData.province} onChange={handleInputChange} />
+                        </div>
+                    </div>
+                    
+                    <h2 className="form-section-header">คำถามประเมิน</h2>
                     <div className="form-group">
-                        <label>วันที่ประเมิน</label>
-                        <input type="date" defaultValue="2025-09-24"/>
+                        <label>ด้านที่ 1: ความรู้พื้นฐานด้านสุขภาพ</label>
+                        <div className="radio-group">
+                            <label><input type="radio" name="q1" value="ดีมาก" onChange={handleInputChange} /> ดีมาก</label>
+                            <label><input type="radio" name="q1" value="ดี" onChange={handleInputChange} /> ดี</label>
+                            <label><input type="radio" name="q1" value="ปานกลาง" onChange={handleInputChange} /> ปานกลาง</label>
+                        </div>
                     </div>
                      <div className="form-group">
-                        <label className="required">ชื่อ - สกุล</label>
-                        <input type="text" placeholder="กรอกชื่อ-สกุล" />
+                        <label>ด้านที่ 2: การเข้าถึงข้อมูลสุขภาพ</label>
+                        <div className="radio-group">
+                            <label><input type="radio" name="q2" value="ดีมาก" onChange={handleInputChange} /> ดีมาก</label>
+                            <label><input type="radio" name="q2" value="ดี" onChange={handleInputChange} /> ดี</label>
+                            <label><input type="radio" name="q2" value="ปานกลาง" onChange={handleInputChange} /> ปานกลาง</label>
+                        </div>
                     </div>
-                </div>
-                <div className="form-grid">
-                     <div className="form-group">
-                        <label className="required">บ้านเลขที่</label>
-                        <input type="text" />
+                    {/* Add more questions as needed */}
+                     <div className="form-actions">
+                        <button type="button" className="btn btn-outline" onClick={() => navigateTo(PAGES.HOME)}>ยกเลิก</button>
+                        <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                            {isSubmitting ? 'กำลังส่ง...' : 'ส่งแบบประเมิน'}
+                        </button>
                     </div>
-                     <div className="form-group">
-                        <label>หมู่</label>
-                        <input type="text" />
-                    </div>
-                     <div className="form-group">
-                        <label>ตำบล</label>
-                        <input type="text" />
-                    </div>
-                    <div className="form-group">
-                        <label>อำเภอ</label>
-                        <input type="text" />
-                    </div>
-                    <div className="form-group">
-                        <label>จังหวัด</label>
-                        <input type="text" />
-                    </div>
-                </div>
-                
-                <h2 className="form-section-header">คำถามประเมิน</h2>
-                <div className="form-group">
-                    <label>ด้านที่ 1: ความรู้พื้นฐานด้านสุขภาพ</label>
-                    <div className="radio-group">
-                        <label><input type="radio" name="q1" /> ดีมาก</label>
-                        <label><input type="radio" name="q1" /> ดี</label>
-                        <label><input type="radio" name="q1" /> ปานกลาง</label>
-                    </div>
-                </div>
-                 <div className="form-group">
-                    <label>ด้านที่ 2: การเข้าถึงข้อมูลสุขภาพ</label>
-                    <div className="radio-group">
-                        <label><input type="radio" name="q2" /> ดีมาก</label>
-                        <label><input type="radio" name="q2" /> ดี</label>
-                        <label><input type="radio" name="q2" /> ปานกลาง</label>
-                    </div>
-                </div>
-                {/* Add more questions as needed */}
-                 <div className="form-actions">
-                    <button type="button" className="btn btn-outline" onClick={() => navigateTo(PAGES.HOME)}>ยกเลิก</button>
-                    <button type="submit" className="btn btn-primary">ส่งแบบประเมิน</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const IsItTrueDoctorPage = ({ navigateTo }) => (
      <div className="container">
@@ -418,46 +501,86 @@ const IsItTrueDoctorPage = ({ navigateTo }) => (
     </div>
 );
 
-const InnovationAssessmentPage = ({ navigateTo }) => (
-     <div className="container">
-        <div className="page-container">
-             <div style={{textAlign: 'center', marginBottom: '2rem', backgroundColor: '#fffbe6', padding: '1rem', borderRadius: 'var(--border-radius)'}}>
-                <h1 style={{color: '#f59e0b'}}><i className="fa-solid fa-star"></i> ประเมินความพึงพอใจ</h1>
-                <p>ท่านมีความพึงพอใจต่อการใช้ นวัตกรรม Health Station @ ท่าแซะ อยู่ในระดับใด ?</p>
+const InnovationAssessmentPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({
+        satisfaction: null,
+        suggestions: '',
+        evaluation_date: new Date().toISOString().split('T')[0],
+        evaluator_name: ''
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleInputChange = (e) => {
+        const { id, name, value, type } = e.target;
+        if (type === 'radio') {
+            setFormData({ ...formData, [name]: value });
+        } else {
+            setFormData({ ...formData, [id || name]: value });
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.satisfaction) {
+            alert('กรุณาเลือกระดับความพึงพอใจ');
+            return;
+        }
+        setIsSubmitting(true);
+        const { error } = await supabase.from('innovation_assessments').insert([formData]);
+        setIsSubmitting(false);
+
+        if (error) {
+            console.error('Error submitting innovation assessment:', error);
+            alert('เกิดข้อผิดพลาดในการส่งแบบประเมิน: ' + error.message);
+        } else {
+            alert('ขอบคุณสำหรับความคิดเห็น! ส่งแบบประเมินสำเร็จ');
+            navigateTo(PAGES.HOME);
+        }
+    };
+
+    return (
+        <div className="container">
+            <div className="page-container">
+                 <div style={{textAlign: 'center', marginBottom: '2rem', backgroundColor: '#fffbe6', padding: '1rem', borderRadius: 'var(--border-radius)'}}>
+                    <h1 style={{color: '#f59e0b'}}><i className="fa-solid fa-star"></i> ประเมินความพึงพอใจ</h1>
+                    <p>ท่านมีความพึงพอใจต่อการใช้ นวัตกรรม Health Station @ ท่าแซะ อยู่ในระดับใด ?</p>
+                </div>
+                <form onSubmit={handleSubmit}>
+                     <div className="form-group">
+                        <label className="required">ท่านมีความพึงพอใจต่อการใช้ นวัตกรรม Health Station @ ท่าแซะ อยู่ในระดับใด ?</label>
+                        <div className="radio-group">
+                            <label><input type="radio" name="satisfaction" value="พอใจมากที่สุด" onChange={handleInputChange} /> พอใจมากที่สุด</label>
+                            <label><input type="radio" name="satisfaction" value="พอใจมาก" onChange={handleInputChange} /> พอใจมาก</label>
+                            <label><input type="radio" name="satisfaction" value="พอใจปานกลาง" onChange={handleInputChange} /> พอใจปานกลาง</label>
+                            <label><input type="radio" name="satisfaction" value="พอใจน้อย" onChange={handleInputChange} /> พอใจน้อย</label>
+                            <label><input type="radio" name="satisfaction" value="พอใจน้อยที่สุด" onChange={handleInputChange} /> พอใจน้อยที่สุด</label>
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="suggestions">ข้อเสนอแนะ</label>
+                        <textarea id="suggestions" name="suggestions" rows={4} placeholder="ข้อเสนอแนะเพิ่มเติมเพื่อการพัฒนาที่ดีขึ้น (ไม่บังคับ)" value={formData.suggestions} onChange={handleInputChange}></textarea>
+                    </div>
+                    <div className="form-grid">
+                        <div className="form-group">
+                            <label>วันที่ประเมิน</label>
+                            <input type="date" id="evaluation_date" value={formData.evaluation_date} onChange={handleInputChange} />
+                        </div>
+                        <div className="form-group">
+                            <label>ลงชื่อผู้ประเมิน (ไม่บังคับ)</label>
+                            <input type="text" id="evaluator_name" name="evaluator_name" value={formData.evaluator_name} onChange={handleInputChange}/>
+                        </div>
+                    </div>
+                    <div className="form-actions">
+                        <button type="button" className="btn btn-outline" onClick={() => navigateTo(PAGES.HOME)}>ยกเลิก</button>
+                        <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                            {isSubmitting ? 'กำลังส่ง...' : 'ส่งแบบประเมิน'}
+                        </button>
+                    </div>
+                </form>
             </div>
-            <form onSubmit={e => e.preventDefault()}>
-                 <div className="form-group">
-                    <label className="required">ท่านมีความพึงพอใจต่อการใช้ นวัตกรรม Health Station @ ท่าแซะ อยู่ในระดับใด ?</label>
-                    <div className="radio-group">
-                        <label><input type="radio" name="satisfaction" /> พอใจมากที่สุด</label>
-                        <label><input type="radio" name="satisfaction" /> พอใจมาก</label>
-                        <label><input type="radio" name="satisfaction" /> พอใจปานกลาง</label>
-                        <label><input type="radio" name="satisfaction" /> พอใจน้อย</label>
-                        <label><input type="radio" name="satisfaction" /> พอใจน้อยที่สุด</label>
-                    </div>
-                </div>
-                <div className="form-group">
-                    <label htmlFor="suggestions">ข้อเสนอแนะ</label>
-                    <textarea id="suggestions" name="suggestions" rows={4} placeholder="ข้อเสนอแนะเพิ่มเติมเพื่อการพัฒนาที่ดีขึ้น (ไม่บังคับ)"></textarea>
-                </div>
-                <div className="form-grid">
-                    <div className="form-group">
-                        <label>วันที่ประเมิน</label>
-                        <input type="date" defaultValue="2025-09-24"/>
-                    </div>
-                    <div className="form-group">
-                        <label>ลงชื่อผู้ประเมิน (ไม่บังคับ)</label>
-                        <input type="text" id="eval-name" name="eval-name" />
-                    </div>
-                </div>
-                <div className="form-actions">
-                    <button type="button" className="btn btn-outline" onClick={() => navigateTo(PAGES.HOME)}>ยกเลิก</button>
-                    <button type="submit" className="btn btn-primary">ส่งแบบประเมิน</button>
-                </div>
-            </form>
         </div>
-    </div>
-);
+    );
+};
 
 const KnowledgeBasePage = ({ navigateTo }) => {
     const [knowledgeItems, setKnowledgeItems] = useState([]);
@@ -676,14 +799,14 @@ const AdminDashboard = ({ navigateTo }) => (
                     </div>
                 </div>
                  <div className="admin-card-footer">
-                    <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_SCREENING_BMI); }}>จัดการ →</a>
+                    <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_SCREENING_DASHBOARD); }}>จัดการ →</a>
                 </div>
             </div>
             <div className="admin-card">
                 <div>
                     <div className="admin-card-header">
                         <div className="icon"><i className="fa-solid fa-clipboard-check"></i></div>
-                        <h3>ผลการประเมิน</h3>
+                        <h3>ประเมินความรอบรู้</h3>
                     </div>
                     <div className="admin-card-body">
                         <p>8,910</p>
@@ -691,7 +814,22 @@ const AdminDashboard = ({ navigateTo }) => (
                     </div>
                 </div>
                  <div className="admin-card-footer">
-                    <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_EVALUATION_RESULTS); }}>จัดการ →</a>
+                    <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_KNOWLEDGE_ASSESSMENT_RESULTS); }}>จัดการ →</a>
+                </div>
+            </div>
+            <div className="admin-card">
+                <div>
+                    <div className="admin-card-header">
+                        <div className="icon"><i className="fa-solid fa-star-half-stroke"></i></div>
+                        <h3>ประเมินนวัตกรรม</h3>
+                    </div>
+                    <div className="admin-card-body">
+                        <p>4,321</p>
+                        <span>ผลลัพธ์</span>
+                    </div>
+                </div>
+                 <div className="admin-card-footer">
+                    <a href="#" onClick={(e) => { e.preventDefault(); navigateTo(PAGES.ADMIN_INNOVATION_ASSESSMENT_RESULTS); }}>จัดการ →</a>
                 </div>
             </div>
              <div className="admin-card">
@@ -756,7 +894,9 @@ const AdminUserManagement = ({ navigateTo }) => {
                     <input type="text" placeholder="ค้นหา..." />
                     <button className="btn"><i className="fa-solid fa-filter"></i> กรอง</button>
                 </div>
-                <button className="btn btn-primary"><i className="fa-solid fa-plus"></i> เพิ่มใหม่</button>
+                <button className="btn btn-primary" onClick={() => navigateTo(PAGES.ADMIN_ADD_USER)}>
+                    <i className="fa-solid fa-plus"></i> เพิ่มใหม่
+                </button>
             </div>
             <div className="table-responsive">
                 <table className="data-table">
@@ -797,6 +937,93 @@ const AdminUserManagement = ({ navigateTo }) => {
                 <button className="btn btn-outline">ถัดไป &gt;</button>
             </div>
         </>
+    );
+};
+
+const AdminAddUserPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({
+        title: '',
+        full_name: '',
+        id_card: '',
+        username: '',
+        password: '',
+        status: 'ใช้งานได้',
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleInputChange = (e) => {
+        const { id, value } = e.target;
+        setFormData({ ...formData, [id]: value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const { error } = await supabase
+            .from('users')
+            .insert([{
+                title: formData.title,
+                full_name: formData.full_name,
+                id_card: formData.id_card,
+                username: formData.username,
+                password: formData.password, // In a real app, this should be hashed!
+                status: formData.status,
+            }]);
+        
+        setIsSubmitting(false);
+
+        if (error) {
+            console.error('Add user error:', error);
+            alert('เกิดข้อผิดพลาดในการเพิ่มผู้ใช้: ' + error.message);
+        } else {
+            alert('เพิ่มผู้ใช้ใหม่สำเร็จ!');
+            navigateTo(PAGES.ADMIN_USER_MANAGEMENT);
+        }
+    };
+
+    return (
+        <div className="page-container" style={{maxWidth: '700px', margin: '0 auto'}}>
+             <form onSubmit={handleSubmit}>
+                 <div className="form-group">
+                    <label className="required" htmlFor="title">คำนำหน้า</label>
+                    <select id="title" value={formData.title} onChange={handleInputChange} required>
+                        <option value="">-- เลือกคำนำหน้า --</option>
+                        <option>นาย</option>
+                        <option>นางสาว</option>
+                        <option>นาง</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label className="required" htmlFor="full_name">ชื่อ-สกุล</label>
+                    <input type="text" id="full_name" value={formData.full_name} onChange={handleInputChange} required />
+                </div>
+                 <div className="form-group">
+                    <label className="required" htmlFor="id_card">เลขประจำตัวประชาชน</label>
+                    <input type="text" id="id_card" value={formData.id_card} onChange={handleInputChange} required />
+                </div>
+                <div className="form-group">
+                    <label className="required" htmlFor="username">ชื่อผู้ใช้</label>
+                    <input type="text" id="username" value={formData.username} onChange={handleInputChange} required />
+                </div>
+                <div className="form-group">
+                    <label className="required" htmlFor="password">รหัสผ่าน</label>
+                    <input type="password" id="password" value={formData.password} onChange={handleInputChange} required />
+                </div>
+                <div className="form-group">
+                    <label className="required" htmlFor="status">สถานะการใช้งาน</label>
+                    <select id="status" value={formData.status} onChange={handleInputChange} required>
+                        <option value="ใช้งานได้">ใช้งานได้</option>
+                        <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+                    </select>
+                </div>
+                <div className="form-actions">
+                    <button type="button" className="btn btn-outline" onClick={() => navigateTo(PAGES.ADMIN_USER_MANAGEMENT)}>ยกเลิก</button>
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกผู้ใช้'}
+                    </button>
+                </div>
+            </form>
+        </div>
     );
 };
 
@@ -843,7 +1070,7 @@ const AdminHealthStationManagement = ({ navigateTo }) => {
                     <input type="text" placeholder="ค้นหา..." />
                     <button className="btn"><i className="fa-solid fa-filter"></i> กรอง</button>
                 </div>
-                <button className="btn btn-primary"><i className="fa-solid fa-plus"></i> เพิ่มข้อมูล</button>
+                <button className="btn btn-primary" onClick={() => navigateTo(PAGES.ADMIN_ADD_HEALTH_STATION)}><i className="fa-solid fa-plus"></i> เพิ่มข้อมูล</button>
             </div>
             <div className="table-responsive">
                 <table className="data-table">
@@ -885,40 +1112,115 @@ const AdminHealthStationManagement = ({ navigateTo }) => {
     );
 };
 
-const AdminEvaluationResults = ({ navigateTo }) => {
-    const [results, setResults] = useState([]);
-    const [loading, setLoading] = useState(true);
+const AdminAddHealthStationPage = ({ navigateTo }) => {
+    const [formData, setFormData] = useState({
+        name: '',
+        service_code: '',
+        status: 'เปิดให้บริการ',
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const fetchResults = async () => {
+    const handleInputChange = (e) => {
+        const { id, value } = e.target;
+        setFormData({ ...formData, [id]: value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const { error } = await supabase.from('health_stations').insert([formData]);
+        setIsSubmitting(false);
+
+        if (error) {
+            console.error('Add Health Station error:', error);
+            alert('เกิดข้อผิดพลาดในการเพิ่ม Health Station: ' + error.message);
+        } else {
+            alert('เพิ่ม Health Station ใหม่สำเร็จ!');
+            navigateTo(PAGES.ADMIN_HEALTH_STATION_MANAGEMENT);
+        }
+    };
+
+    return (
+        <div className="page-container" style={{ maxWidth: '700px', margin: '0 auto' }}>
+            <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                    <label className="required" htmlFor="name">ชื่อจุดบริการ Health Station</label>
+                    <input type="text" id="name" value={formData.name} onChange={handleInputChange} required />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="service_code">รหัสหน่วยบริการ</label>
+                    <input type="text" id="service_code" value={formData.service_code} onChange={handleInputChange} />
+                </div>
+                <div className="form-group">
+                    <label className="required" htmlFor="status">สถานะการให้บริการ</label>
+                    <select id="status" value={formData.status} onChange={handleInputChange} required>
+                        <option value="เปิดให้บริการ">เปิดให้บริการ</option>
+                        <option value="ปิดให้บริการ">ปิดให้บริการ</option>
+                    </select>
+                </div>
+                <div className="form-actions">
+                    <button type="button" className="btn btn-outline" onClick={() => navigateTo(PAGES.ADMIN_HEALTH_STATION_MANAGEMENT)}>ยกเลิก</button>
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? 'กำลังบันทึก...' : 'บันทึก'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+// --- Generic Admin Page Components ---
+const GenericAdminPage = ({
+    navigateTo,
+    pageTitle,
+    tableName,
+    columns,
+    addPage,
+    renderRow
+}) => {
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filters, setFilters] = useState({ search: '', result: '', startDate: '', endDate: '', station: '' });
+
+    const fetchData = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('screening_results')
-            .select('*')
-            .order('evaluation_date', { ascending: false });
+        let query = supabase.from(tableName).select('*').order('created_at', { ascending: false });
+
+        // Apply filters
+        if (filters.search) {
+            query = query.ilike('full_name', `%${filters.search}%`);
+        }
+        // Add other filters as needed...
+
+        const { data, error } = await query;
         
         if (error) {
-            console.error('Error fetching evaluation results:', error);
-            alert('ไม่สามารถโหลดข้อมูลผลการประเมินได้');
+            console.error(`Error fetching ${tableName}:`, error);
+            alert(`ไม่สามารถโหลดข้อมูลได้: ${error.message}`);
         } else {
-            setResults(data);
+            setData(data);
         }
         setLoading(false);
     };
 
     useEffect(() => {
-        fetchResults();
-    }, []);
+        fetchData();
+    }, [filters]); // Refetch when filters change
 
-    const handleDelete = async (resultId) => {
-        if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผลการประเมินนี้?')) {
-            const { error } = await supabase.from('screening_results').delete().eq('id', resultId);
+    const handleDelete = async (id) => {
+        if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?')) {
+            const { error } = await supabase.from(tableName).delete().eq('id', id);
             if (error) {
                 alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
             } else {
-                alert('ลบผลการประเมินสำเร็จ');
-                fetchResults(); // Refresh list
+                alert('ลบข้อมูลสำเร็จ');
+                fetchData();
             }
         }
+    };
+    
+    const handleFilterChange = (e) => {
+        setFilters({...filters, [e.target.name]: e.target.value });
     };
 
     if (loading) {
@@ -929,41 +1231,32 @@ const AdminEvaluationResults = ({ navigateTo }) => {
         <>
             <div className="table-toolbar">
                 <div className="search-filter">
-                    <input type="text" placeholder="ค้นหาตามชื่อ..." />
-                    <button className="btn"><i className="fa-solid fa-filter"></i> กรอง</button>
+                    <input type="text" name="search" placeholder="ค้นหา ชื่อ-สกุล..." onChange={handleFilterChange}/>
+                    {/* Add more filter inputs here */}
+                    <input type="date" name="startDate" onChange={handleFilterChange} />
+                    <span>ถึง</span>
+                    <input type="date" name="endDate" onChange={handleFilterChange} />
+                    <button className="btn" onClick={fetchData}><i className="fa-solid fa-filter"></i> กรอง</button>
                 </div>
-                <button className="btn btn-primary"><i className="fa-solid fa-plus"></i> เพิ่มใหม่</button>
+                {addPage && (
+                    <button className="btn btn-primary" onClick={() => navigateTo(addPage)}>
+                        <i className="fa-solid fa-plus"></i> เพิ่มใหม่
+                    </button>
+                )}
             </div>
             <div className="table-responsive">
                 <table className="data-table">
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>วันที่ประเมิน</th>
-                            <th>ชื่อ-สกุล</th>
-                            <th>ประเภทการประเมิน</th>
-                            <th>ผลการประเมิน</th>
-                            <th>การดำเนินการ</th>
+                            {columns.map(col => <th key={col}>{col}</th>)}
                         </tr>
                     </thead>
                     <tbody>
-                        {results.map((result, index) => (
-                             <tr key={result.id}>
-                                <td>{index + 1}</td>
-                                <td>{new Date(result.evaluation_date).toLocaleDateString('th-TH')}</td>
-                                <td>{result.full_name}</td>
-                                <td>{result.evaluation_type}</td>
-                                <td>{result.result}</td>
-                                <td className="table-actions">
-                                    <button className="btn btn-outline" style={{padding: '0.25rem 0.5rem', marginRight: '0.5rem'}}>ดู/แก้ไข</button>
-                                    <button className="btn btn-danger" style={{padding: '0.25rem 0.5rem'}} onClick={() => handleDelete(result.id)}>ลบ</button>
-                                </td>
-                            </tr>
-                        ))}
+                        {data.map((item, index) => renderRow(item, index, handleDelete))}
                     </tbody>
                 </table>
             </div>
-             <div className="pagination">
+            <div className="pagination">
                 <button className="btn btn-outline">&lt; ก่อนหน้า</button>
                 <button className="btn btn-primary">1</button>
                 <button className="btn btn-outline">ถัดไป &gt;</button>
@@ -973,82 +1266,239 @@ const AdminEvaluationResults = ({ navigateTo }) => {
 };
 
 
-const AdminScreeningLayout = ({ navigateTo, activeTab, children, onTabClick }) => (
-    <>
-        <div className="admin-tabs">
-            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_BMI)} className={activeTab === PAGES.ADMIN_SCREENING_BMI ? 'active' : ''}>ดัชนีมวลกาย</button>
-            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_WAIST)} className={activeTab === PAGES.ADMIN_SCREENING_WAIST ? 'active' : ''}>รอบเอว</button>
-            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_BP)} className={activeTab === PAGES.ADMIN_SCREENING_BP ? 'active' : ''}>ความดันโลหิต</button>
-            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_SUGAR)} className={activeTab === PAGES.ADMIN_SCREENING_SUGAR ? 'active' : ''}>น้ำตาลในเลือด</button>
-            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_SMOKING)} className={activeTab === PAGES.ADMIN_SCREENING_SMOKING ? 'active' : ''}>การสูบบุหรี่</button>
-            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_ALCOHOL)} className={activeTab === PAGES.ADMIN_SCREENING_ALCOHOL ? 'active' : ''}>การดื่มสุรา</button>
-            <button onClick={() => onTabClick(PAGES.ADMIN_SCREENING_DEPRESSION)} className={activeTab === PAGES.ADMIN_SCREENING_DEPRESSION ? 'active' : ''}>ภาวะซึมเศร้า</button>
+// --- Screening Dashboard ---
+const AdminScreeningDashboard = ({ navigateTo }) => (
+    <div className="screening-card-grid">
+        <div className="screening-card color-1" onClick={() => navigateTo(PAGES.ADMIN_SCREENING_BMI)}>
+            <div className="icon"><i className="fa-solid fa-person"></i></div>
+            <div><h3>ดัชนีมวลกาย (BMI)</h3><p>จัดการข้อมูลการคัดกรองดัชนีมวลกาย</p></div>
         </div>
-        <div className="table-toolbar">
-            <div className="search-filter">
-                <input type="text" placeholder="ค้นหา..."/>
-                <button className="btn"><i className="fa-solid fa-filter"></i> กรอง</button>
+         <div className="screening-card color-2" onClick={() => navigateTo(PAGES.ADMIN_SCREENING_WAIST)}>
+            <div className="icon"><i className="fa-solid fa-ruler-horizontal"></i></div>
+            <div><h3>รอบเอว</h3><p>จัดการข้อมูลการคัดกรองรอบเอว</p></div>
+        </div>
+        <div className="screening-card color-3" onClick={() => navigateTo(PAGES.ADMIN_SCREENING_BP)}>
+            <div className="icon"><i className="fa-solid fa-heart-pulse"></i></div>
+            <div><h3>ความดันโลหิต</h3><p>จัดการข้อมูลการคัดกรองความดันโลหิต</p></div>
+        </div>
+        <div className="screening-card color-4" onClick={() => navigateTo(PAGES.ADMIN_SCREENING_SUGAR)}>
+            <div className="icon"><i className="fa-solid fa-droplet"></i></div>
+            <div><h3>น้ำตาลในเลือด</h3><p>จัดการข้อมูลการคัดกรองระดับน้ำตาล</p></div>
+        </div>
+         <div className="screening-card color-5" onClick={() => navigateTo(PAGES.ADMIN_SCREENING_SMOKING)}>
+            <div className="icon"><i className="fa-solid fa-smoking"></i></div>
+            <div><h3>การสูบบุหรี่</h3><p>จัดการข้อมูลการคัดกรองการสูบบุหรี่</p></div>
+        </div>
+        <div className="screening-card color-6" onClick={() => navigateTo(PAGES.ADMIN_SCREENING_ALCOHOL)}>
+            <div className="icon"><i className="fa-solid fa-wine-glass"></i></div>
+            <div><h3>การดื่มสุรา</h3><p>จัดการข้อมูลการคัดกรองการดื่มสุรา</p></div>
+        </div>
+        <div className="screening-card color-7" onClick={() => navigateTo(PAGES.ADMIN_SCREENING_DEPRESSION)}>
+            <div className="icon"><i className="fa-solid fa-brain"></i></div>
+            <div><h3>ภาวะซึมเศร้า</h3><p>จัดการข้อมูลการคัดกรองภาวะซึมเศร้า</p></div>
+        </div>
+    </div>
+);
+
+
+const AdminKnowledgeAssessmentResults = (props) => (
+    <GenericAdminPage
+        {...props}
+        tableName="knowledge_assessments"
+        columns={['#', 'วันที่ประเมิน', 'ชื่อ-สกุล', 'บ้านเลขที่', 'หมู่', 'ด้านที่ 1', 'ด้านที่ 2', 'การดำเนินการ']}
+        renderRow={(item, index, handleDelete) => (
+            <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{new Date(item.evaluation_date).toLocaleDateString('th-TH')}</td>
+                <td>{item.full_name}</td>
+                <td>{item.house_no}</td>
+                <td>{item.moo}</td>
+                <td>{item.q1}</td>
+                <td>{item.q2}</td>
+                <td className="table-actions">
+                    <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        )}
+    />
+);
+
+const AdminInnovationAssessmentResults = (props) => (
+    <GenericAdminPage
+        {...props}
+        tableName="innovation_assessments"
+        columns={['#', 'วันที่ประเมิน', 'ผลการประเมิน', 'ข้อเสนอแนะ', 'ชื่อผู้ประเมิน', 'การดำเนินการ']}
+        renderRow={(item, index, handleDelete) => (
+            <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{new Date(item.evaluation_date).toLocaleDateString('th-TH')}</td>
+                <td>{item.satisfaction}</td>
+                <td>{item.suggestions || '-'}</td>
+                <td>{item.evaluator_name || '-'}</td>
+                 <td className="table-actions">
+                    <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        )}
+    />
+);
+
+// --- New Add Screening Forms ---
+const GenericAddScreeningPage = ({ navigateTo, tableName, successPage, formFields, pageTitle }) => {
+    const [formData, setFormData] = useState({
+        screening_date: new Date().toISOString().split('T')[0],
+        title: '',
+        full_name: '',
+        id_card: '',
+        station: '',
+        ...Object.fromEntries(formFields.map(f => [f.id, f.defaultValue || '']))
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleInputChange = (e) => {
+        const { id, value } = e.target;
+        setFormData({ ...formData, [id]: value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        // Add specific calculation logic here before insert if needed
+        const { error } = await supabase.from(tableName).insert([formData]);
+        setIsSubmitting(false);
+
+        if (error) {
+            alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`);
+        } else {
+            alert('บันทึกข้อมูลสำเร็จ!');
+            navigateTo(successPage);
+        }
+    };
+    
+    return (
+        <div className="page-container" style={{maxWidth: '800px', margin: '0 auto'}}>
+            <form onSubmit={handleSubmit}>
+                <h2 className="form-section-header">ข้อมูลผู้รับการคัดกรอง</h2>
+                <div className="form-grid">
+                    <div className="form-group"><label className="required">วันที่คัดกรอง</label><input type="date" id="screening_date" value={formData.screening_date} onChange={handleInputChange} required /></div>
+                    <div className="form-group"><label className="required">คำนำหน้า</label><select id="title" value={formData.title} onChange={handleInputChange} required><option value="">--เลือก--</option><option>นาย</option><option>นาง</option><option>นางสาว</option></select></div>
+                    <div className="form-group"><label className="required">ชื่อ-สกุล</label><input type="text" id="full_name" value={formData.full_name} onChange={handleInputChange} required /></div>
+                    <div className="form-group"><label>เลขประจำตัวประชาชน</label><input type="text" id="id_card" value={formData.id_card} onChange={handleInputChange} /></div>
+                    <div className="form-group"><label className="required">สถานีที่คัดกรอง</label><input type="text" id="station" value={formData.station} onChange={handleInputChange} required /></div>
+                </div>
+                <h2 className="form-section-header">{pageTitle}</h2>
+                <div className="form-grid">
+                {formFields.map(field => (
+                    <div className="form-group" key={field.id} style={field.fullWidth ? {gridColumn: '1 / -1'} : {}}>
+                        <label className={field.required ? 'required' : ''}>{field.label}</label>
+                        {field.type === 'select' ? (
+                             <select id={field.id} value={formData[field.id]} onChange={handleInputChange} required={field.required}>
+                                {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            </select>
+                        ) : (
+                            <input type={field.type || 'text'} id={field.id} value={formData[field.id]} onChange={handleInputChange} required={field.required} />
+                        )}
+                    </div>
+                ))}
+                </div>
+                 <div className="form-actions">
+                    <button type="button" className="btn btn-outline" onClick={() => navigateTo(successPage)}>ยกเลิก</button>
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+const AdminAddScreeningBmiPage = (props) => (
+    <GenericAddScreeningPage
+        {...props}
+        tableName="screening_bmi"
+        successPage={PAGES.ADMIN_SCREENING_BMI}
+        pageTitle="ข้อมูลดัชนีมวลกาย"
+        formFields={[
+            { id: 'weight', label: 'น้ำหนัก (kg)', type: 'number', required: true },
+            { id: 'height', label: 'ส่วนสูง (cm)', type: 'number', required: true }
+        ]}
+    />
+);
+
+// --- All Screening Management Pages ---
+
+const AdminScreeningBmiPage = (props) => (
+    <GenericAdminPage
+        {...props}
+        pageTitle="ดัชนีมวลกาย (BMI)"
+        tableName="screening_bmi"
+        addPage={PAGES.ADMIN_ADD_SCREENING_BMI}
+        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'เลข ปชช.', 'น้ำหนัก', 'ส่วนสูง', 'ฺBMI', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
+        renderRow={(item, index, handleDelete) => (
+             <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
+                <td>{item.title}{item.full_name}</td>
+                <td>{item.id_card}</td>
+                <td>{item.weight}</td>
+                <td>{item.height}</td>
+                <td>{item.bmi}</td>
+                <td><span className={`status status-normal`}>{item.interpretation}</span></td>
+                <td>{item.station}</td>
+                <td className="table-actions">
+                    <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        )}
+    />
+);
+const AdminScreeningWaistPage = (props) => (
+     <GenericAdminPage
+        {...props}
+        pageTitle="รอบเอว"
+        tableName="screening_waist"
+        addPage={PAGES.ADMIN_ADD_SCREENING_WAIST}
+        columns={['#', 'วันที่คัดกรอง', 'ชื่อ-สกุล', 'รอบเอว (cm)', 'การแปลผล', 'สถานี', 'ดำเนินการ']}
+        renderRow={(item, index, handleDelete) => (
+             <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{new Date(item.screening_date).toLocaleDateString('th-TH')}</td>
+                <td>{item.title}{item.full_name}</td>
+                <td>{item.waist}</td>
+                <td><span className={`status ${item.interpretation === 'เกินเกณฑ์' ? 'status-over' : 'status-normal'}`}>{item.interpretation}</span></td>
+                <td>{item.station}</td>
+                <td className="table-actions">
+                    <button className="btn btn-danger" onClick={() => handleDelete(item.id)}><i className="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        )}
+    />
+);
+// Placeholder for other screening pages. They will follow the same pattern.
+const AdminScreeningBpPage = (props) => <div className="container"><p>Blood Pressure Page - Coming Soon</p></div>;
+const AdminScreeningSugarPage = (props) => <div className="container"><p>Blood Sugar Page - Coming Soon</p></div>;
+const AdminScreeningSmokingPage = (props) => <div className="container"><p>Smoking Page - Coming Soon</p></div>;
+const AdminScreeningAlcoholPage = (props) => <div className="container"><p>Alcohol Page - Coming Soon</p></div>;
+const AdminScreeningDepressionPage = (props) => <div className="container"><p>Depression Page - Coming Soon</p></div>;
+
+const AdminReportsPage = () => (
+    <div className="page-container">
+        <PageHeader title="รายงาน" subtitle="เลือกประเภทรายงานที่ต้องการ"/>
+        <div className="home-grid">
+            <div className="home-card color-1">
+                 <div className="icon"><i className="fa-solid fa-file-invoice"></i></div>
+                <h3>รายงานสรุป</h3>
+                <p>ดูรายงานสรุปผลการดำเนินงานในรูปแบบต่างๆ</p>
             </div>
-            <button className="btn btn-primary"><i className="fa-solid fa-plus"></i> เพิ่มใหม่</button>
+             <div className="home-card color-2">
+                 <div className="icon"><i className="fa-solid fa-file-export"></i></div>
+                <h3>ส่งออกทะเบียน</h3>
+                <p>ส่งออกข้อมูลทะเบียนการคัดกรองเป็นไฟล์ Excel</p>
+            </div>
         </div>
-        {children}
-        <div className="pagination">
-            <button className="btn btn-outline">&lt; ก่อนหน้า</button>
-            <button className="btn btn-primary">1</button>
-            <button className="btn btn-outline">2</button>
-            <button className="btn btn-outline">ถัดไป &gt;</button>
-        </div>
-    </>
-);
-
-const AdminScreeningBmi = () => (
-    <div className="table-responsive">
-        <table className="data-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>วันที่คัดกรอง</th>
-                    <th>ชื่อ-สกุล</th>
-                    <th>เลขประจำตัวประชาชน</th>
-                    <th>น้ำหนัก</th>
-                    <th>ส่วนสูง</th>
-                    <th>BMI</th>
-                    <th>การแปลผล</th>
-                    <th>สถานี</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>1</td><td>2568-09-22</td><td>นางนูรียะห์ สะนี</td><td>1900300012381</td><td>53</td><td>154</td><td>22.35</td><td><span className="status status-normal">ร่างกายสมส่วน</span></td><td>@สมานมิตร</td>
-                    <td className="table-actions"><button><i className="fa-solid fa-trash"></i></button></td>
-                </tr>
-                 <tr>
-                    <td>2</td><td>2568-09-22</td><td>นางสาวพัชรกร เกตุนวล</td><td>3860200467775</td><td>50</td><td>152</td><td>21.64</td><td><span className="status status-normal">ร่างกายสมส่วน</span></td><td>@สมานมิตร</td>
-                    <td className="table-actions"><button><i className="fa-solid fa-trash"></i></button></td>
-                </tr>
-                <tr>
-                    <td>3</td><td>2535-09-11</td><td>นางสาวจันทิมา สิงหนาท</td><td>1860200083334</td><td>73</td><td>152</td><td>31.6</td><td><span className="status status-risk">อ้วนอันตราย</span></td><td>@สมานมิตร</td>
-                    <td className="table-actions"><button><i className="fa-solid fa-trash"></i></button></td>
-                </tr>
-            </tbody>
-        </table>
     </div>
 );
 
-const AdminScreeningWaist = () => (
-    <div className="table-responsive">
-        <table className="data-table">
-             <thead>
-                <tr><th>#</th><th>วันที่คัดกรอง</th><th>ชื่อ-สกุล</th><th>รอบเอว</th><th>การแปลผล</th><th>สถานี</th><th></th></tr>
-            </thead>
-             <tbody>
-                <tr><td>1</td><td>2568-09-22</td><td>นางนูรียะห์ สะนี</td><td>75</td><td><span className="status status-normal">ไม่เกินเกณฑ์</span></td><td>@สมานมิตร</td><td className="table-actions"><button><i className="fa-solid fa-trash"></i></button></td></tr>
-                <tr><td>2</td><td>2568-09-22</td><td>นางสาวพัชรกร เกตุนวล</td><td>78</td><td><span className="status status-over">เกินเกณฑ์</span></td><td>@สมานมิตร</td><td className="table-actions"><button><i className="fa-solid fa-trash"></i></button></td></tr>
-            </tbody>
-        </table>
-    </div>
-);
 
 // Admin layout component
 const AdminLayout = ({ children, title, navigateTo }) => (
@@ -1060,7 +1510,6 @@ const AdminLayout = ({ children, title, navigateTo }) => (
                 </a>
                 <h1>{title}</h1>
             </div>
-            {/* The "Add New" button is moved to child components for better state management */}
         </header>
         <main className="admin-main">
             {children}
@@ -1073,7 +1522,6 @@ const AdminLayout = ({ children, title, navigateTo }) => (
 const App = () => {
     const [currentPage, setCurrentPage] = useState(PAGES.HOME);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [adminScreeningTab, setAdminScreeningTab] = useState(PAGES.ADMIN_SCREENING_BMI);
     
     const navigateTo = (page) => {
         window.scrollTo(0, 0);
@@ -1089,11 +1537,6 @@ const App = () => {
         setIsLoggedIn(false);
         navigateTo(PAGES.HOME);
     };
-
-    const handleAdminScreeningTabClick = (tab) => {
-        setAdminScreeningTab(tab);
-        navigateTo(tab);
-    }
     
     const renderPage = () => {
         if (!isLoggedIn) {
@@ -1110,54 +1553,36 @@ const App = () => {
             }
         } else {
              // Logged in user routing
+            const AdminPage = (title, Component, props = {}) => (
+                <AdminLayout title={title} navigateTo={navigateTo}>
+                    <Component navigateTo={navigateTo} {...props} />
+                </AdminLayout>
+            );
+
             switch (currentPage) {
-                case PAGES.ADMIN_DASHBOARD:
-                    return (
-                        <AdminLayout title="เมนูจัดการ" navigateTo={navigateTo}>
-                            <AdminDashboard navigateTo={navigateTo} />
-                        </AdminLayout>
-                    );
-                case PAGES.ADMIN_USER_MANAGEMENT:
-                    return (
-                        <AdminLayout title="การจัดการผู้ใช้" navigateTo={navigateTo}>
-                            <AdminUserManagement navigateTo={navigateTo} />
-                        </AdminLayout>
-                    );
-                case PAGES.ADMIN_HEALTH_STATION_MANAGEMENT:
-                     return (
-                        <AdminLayout title="การจัดการ Health Station" navigateTo={navigateTo}>
-                            <AdminHealthStationManagement navigateTo={navigateTo} />
-                        </AdminLayout>
-                    );
-                case PAGES.ADMIN_EVALUATION_RESULTS:
-                     return (
-                        <AdminLayout title="ผลการประเมิน" navigateTo={navigateTo}>
-                            <AdminEvaluationResults navigateTo={navigateTo} />
-                        </AdminLayout>
-                    );
-                case PAGES.ADMIN_SCREENING_BMI:
-                case PAGES.ADMIN_SCREENING_WAIST:
-                case PAGES.ADMIN_SCREENING_BP:
-                case PAGES.ADMIN_SCREENING_SUGAR:
-                case PAGES.ADMIN_SCREENING_SMOKING:
-                case PAGES.ADMIN_SCREENING_ALCOHOL:
-                case PAGES.ADMIN_SCREENING_DEPRESSION:
-                     return (
-                        <AdminLayout title="ทะเบียนการคัดกรอง" navigateTo={navigateTo}>
-                            <AdminScreeningLayout navigateTo={navigateTo} activeTab={adminScreeningTab} onTabClick={handleAdminScreeningTabClick}>
-                                {adminScreeningTab === PAGES.ADMIN_SCREENING_BMI && <AdminScreeningBmi />}
-                                {adminScreeningTab === PAGES.ADMIN_SCREENING_WAIST && <AdminScreeningWaist />}
-                                {/* Add other screening components here */}
-                            </AdminScreeningLayout>
-                        </AdminLayout>
-                    );
-                default:
-                    // Fallback to dashboard if logged in and page not found
-                    return (
-                         <AdminLayout title="เมนูจัดการ" navigateTo={navigateTo}>
-                            <AdminDashboard navigateTo={navigateTo} />
-                        </AdminLayout>
-                    );
+                case PAGES.ADMIN_DASHBOARD: return AdminPage("เมนูจัดการ", AdminDashboard);
+                case PAGES.ADMIN_USER_MANAGEMENT: return AdminPage("การจัดการผู้ใช้", AdminUserManagement);
+                case PAGES.ADMIN_ADD_USER: return AdminPage("เพิ่มผู้ใช้ใหม่", AdminAddUserPage);
+                case PAGES.ADMIN_HEALTH_STATION_MANAGEMENT: return AdminPage("การจัดการ Health Station", AdminHealthStationManagement);
+                case PAGES.ADMIN_ADD_HEALTH_STATION: return AdminPage("เพิ่ม Health Station", AdminAddHealthStationPage);
+                
+                case PAGES.ADMIN_SCREENING_DASHBOARD: return AdminPage("ทะเบียนการคัดกรอง", AdminScreeningDashboard);
+                case PAGES.ADMIN_SCREENING_BMI: return AdminPage("การคัดกรอง: ดัชนีมวลกาย", AdminScreeningBmiPage);
+                case PAGES.ADMIN_ADD_SCREENING_BMI: return AdminPage("เพิ่มข้อมูล: ดัชนีมวลกาย", AdminAddScreeningBmiPage);
+                case PAGES.ADMIN_SCREENING_WAIST: return AdminPage("การคัดกรอง: รอบเอว", AdminScreeningWaistPage);
+                // case PAGES.ADMIN_ADD_SCREENING_WAIST: return AdminPage("เพิ่มข้อมูล: รอบเอว", AdminAddScreeningWaistPage);
+                case PAGES.ADMIN_SCREENING_BP: return AdminPage("การคัดกรอง: ความดันโลหิต", AdminScreeningBpPage);
+                case PAGES.ADMIN_SCREENING_SUGAR: return AdminPage("การคัดกรอง: น้ำตาลในเลือด", AdminScreeningSugarPage);
+                case PAGES.ADMIN_SCREENING_SMOKING: return AdminPage("การคัดกรอง: การสูบบุหรี่", AdminScreeningSmokingPage);
+                case PAGES.ADMIN_SCREENING_ALCOHOL: return AdminPage("การคัดกรอง: การดื่มสุรา", AdminScreeningAlcoholPage);
+                case PAGES.ADMIN_SCREENING_DEPRESSION: return AdminPage("การคัดกรอง: ภาวะซึมเศร้า", AdminScreeningDepressionPage);
+                
+                case PAGES.ADMIN_KNOWLEDGE_ASSESSMENT_RESULTS: return AdminPage("ผลการประเมินความรอบรู้", AdminKnowledgeAssessmentResults);
+                case PAGES.ADMIN_INNOVATION_ASSESSMENT_RESULTS: return AdminPage("ผลการประเมินนวัตกรรม", AdminInnovationAssessmentResults);
+                
+                case PAGES.ADMIN_REPORTS: return AdminPage("รายงาน", AdminReportsPage);
+
+                default: return AdminPage("เมนูจัดการ", AdminDashboard);
             }
         }
     };
