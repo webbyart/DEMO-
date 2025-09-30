@@ -86,11 +86,24 @@ const addressData = {
 // --- Helper for creating user-friendly alerts ---
 const handleApiError = (error, contextMessage) => {
     console.error(contextMessage, error);
-    let alertMessage = `${contextMessage}: ${error.message}`;
-    if (error.message.includes('Failed to fetch')) {
-        alertMessage += '\n\n(คำแนะนำ: ปัญหานี้อาจเกิดจากการตั้งค่า CORS ใน Supabase ของคุณ โปรดตรวจสอบการตั้งค่า API)';
+    
+    let detailedMessage = error.message || JSON.stringify(error);
+    let advice = '';
+
+    // Check for CORS error (browser-level)
+    if (detailedMessage.includes('Failed to fetch')) {
+        advice = `\n\n[สาเหตุที่เป็นไปได้] ปัญหานี้เกิดจากนโยบายความปลอดภัย CORS (Cross-Origin Resource Sharing) ในโปรเจกต์ Supabase ของคุณ\n\n[วิธีแก้ไข]\n1. ไปที่โปรเจกต์ของคุณในเว็บไซต์ Supabase.com\n2. ไปที่ Project Settings > API\n3. ในส่วน CORS Configuration ให้เพิ่ม URL ของแอปพลิเคชันของคุณ หรือใส่ '*' เพื่อทดสอบ`;
+    } 
+    // Check for potential RLS error (Supabase-level)
+    else if (error.details && error.details.includes('violates row-level security policy')) {
+        advice = `\n\n[สาเหตุที่เป็นไปได้] ปัญหานี้เกิดจากนโยบายความปลอดภัย Row Level Security (RLS) ซึ่งบล็อกการบันทึกข้อมูล\n\n[วิธีแก้ไข]\n1. ไปที่โปรเจกต์ของคุณในเว็บไซต์ Supabase.com\n2. ไปที่ Table Editor แล้วเลือกตารางที่เกี่ยวข้อง\n3. ปิดการใช้งาน (Disable) Row Level Security`;
+    } 
+    // General advice for other errors, especially for SELECT queries that might be blocked by RLS
+    else {
+        advice = `\n\n[คำแนะนำ] โปรดตรวจสอบการตั้งค่าในโปรเจกต์ Supabase ของคุณ:\n1. ตั้งค่า CORS ถูกต้องแล้วหรือยัง? (Project Settings > API)\n2. ปิดการใช้งาน Row Level Security (RLS) ในตารางที่ต้องการดึงข้อมูลแล้วหรือยัง? (Table Editor)\n3. ชื่อตารางและคอลัมน์ถูกต้องหรือไม่?`;
     }
-    alert(alertMessage);
+
+    alert(`${contextMessage}:\n${detailedMessage}\n${advice}`);
 };
 
 
@@ -610,8 +623,7 @@ const KnowledgeBasePage = ({ navigateTo }) => {
                 .select('*');
             
             if (error) {
-                console.error('Error fetching knowledge base:', error);
-                alert('ไม่สามารถโหลดข้อมูลคลังความรู้ได้');
+                handleApiError(error, 'ไม่สามารถโหลดข้อมูลคลังความรู้ได้');
             } else {
                 setKnowledgeItems(data);
             }
@@ -874,8 +886,7 @@ const AdminUserManagement = ({ navigateTo }) => {
         setLoading(true);
         const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
         if (error) {
-            console.error('Error fetching users:', error);
-            alert('ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
+            handleApiError(error, 'ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
         } else {
             setUsers(data);
         }
@@ -890,7 +901,7 @@ const AdminUserManagement = ({ navigateTo }) => {
         if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้?')) {
             const { error } = await supabase.from('users').delete().eq('id', userId);
             if (error) {
-                alert('เกิดข้อผิดพลาดในการลบผู้ใช้: ' + error.message);
+                handleApiError(error, 'เกิดข้อผิดพลาดในการลบผู้ใช้');
             } else {
                 alert('ลบผู้ใช้สำเร็จ');
                 fetchUsers(); // Refresh the list
@@ -988,8 +999,7 @@ const AdminAddUserPage = ({ navigateTo }) => {
         setIsSubmitting(false);
 
         if (error) {
-            console.error('Add user error:', error);
-            alert('เกิดข้อผิดพลาดในการเพิ่มผู้ใช้: ' + error.message);
+            handleApiError(error, 'เกิดข้อผิดพลาดในการเพิ่มผู้ใช้');
         } else {
             alert('เพิ่มผู้ใช้ใหม่สำเร็จ!');
             navigateTo(PAGES.ADMIN_USER_MANAGEMENT);
@@ -1052,7 +1062,7 @@ const AdminEditUserPage = ({ navigateTo, params }) => {
         const fetchUser = async () => {
             const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
             if (error) {
-                alert('ไม่พบข้อมูลผู้ใช้: ' + error.message);
+                handleApiError(error, 'ไม่พบข้อมูลผู้ใช้');
                 navigateTo(PAGES.ADMIN_USER_MANAGEMENT);
             } else {
                 setFormData({ ...data, password: '' }); // Clear password for security
@@ -1080,7 +1090,7 @@ const AdminEditUserPage = ({ navigateTo, params }) => {
         setIsSubmitting(false);
 
         if (error) {
-            alert('เกิดข้อผิดพลาดในการแก้ไขข้อมูล: ' + error.message);
+            handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
         } else {
             alert('แก้ไขข้อมูลผู้ใช้สำเร็จ!');
             navigateTo(PAGES.ADMIN_USER_MANAGEMENT);
@@ -1143,8 +1153,7 @@ const AdminHealthStationManagement = ({ navigateTo }) => {
         setLoading(true);
         const { data, error } = await supabase.from('health_stations').select('*').order('created_at', { ascending: false });
         if (error) {
-            console.error('Error fetching stations:', error);
-            alert('ไม่สามารถโหลดข้อมูล Health Station ได้: ' + error.message);
+            handleApiError(error, 'ไม่สามารถโหลดข้อมูล Health Station ได้');
         } else {
             setStations(data);
         }
@@ -1159,7 +1168,7 @@ const AdminHealthStationManagement = ({ navigateTo }) => {
         if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบ Health Station นี้?')) {
             const { error } = await supabase.from('health_stations').delete().eq('id', stationId);
             if (error) {
-                alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
+                handleApiError(error, 'เกิดข้อผิดพลาดในการลบ');
             } else {
                 alert('ลบ Health Station สำเร็จ');
                 fetchStations(); // Refresh list
@@ -1240,8 +1249,7 @@ const AdminAddHealthStationPage = ({ navigateTo }) => {
         setIsSubmitting(false);
 
         if (error) {
-            console.error('Add Health Station error:', error);
-            alert('เกิดข้อผิดพลาดในการเพิ่ม Health Station: ' + error.message);
+            handleApiError(error, 'เกิดข้อผิดพลาดในการเพิ่ม Health Station');
         } else {
             alert('เพิ่ม Health Station ใหม่สำเร็จ!');
             navigateTo(PAGES.ADMIN_HEALTH_STATION_MANAGEMENT);
@@ -1287,7 +1295,7 @@ const AdminEditHealthStationPage = ({ navigateTo, params }) => {
         const fetchStation = async () => {
             const { data, error } = await supabase.from('health_stations').select('*').eq('id', stationId).single();
             if (error) {
-                alert('ไม่พบข้อมูล Health Station: ' + error.message);
+                handleApiError(error, 'ไม่พบข้อมูล Health Station');
                 navigateTo(PAGES.ADMIN_HEALTH_STATION_MANAGEMENT);
             } else {
                 setFormData(data);
@@ -1309,7 +1317,7 @@ const AdminEditHealthStationPage = ({ navigateTo, params }) => {
         setIsSubmitting(false);
 
         if (error) {
-            alert('เกิดข้อผิดพลาดในการแก้ไขข้อมูล: ' + error.message);
+            handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
         } else {
             alert('แก้ไขข้อมูล Health Station สำเร็จ!');
             navigateTo(PAGES.ADMIN_HEALTH_STATION_MANAGEMENT);
@@ -1375,8 +1383,7 @@ const GenericAdminPage = ({
         const { data, error } = await query;
         
         if (error) {
-            console.error(`Error fetching ${tableName}:`, error);
-            alert(`ไม่สามารถโหลดข้อมูลได้: ${error.message || JSON.stringify(error)}`);
+            handleApiError(error, `ไม่สามารถโหลดข้อมูลจากตาราง ${tableName} ได้`);
         } else {
             setData(data);
         }
@@ -1391,7 +1398,7 @@ const GenericAdminPage = ({
         if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?')) {
             const { error } = await supabase.from(tableName).delete().eq('id', id);
             if (error) {
-                alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
+                handleApiError(error, 'เกิดข้อผิดพลาดในการลบ');
             } else {
                 alert('ลบข้อมูลสำเร็จ');
                 fetchData();
@@ -1572,8 +1579,12 @@ const AdminAddScreeningBmiPage = ({ navigateTo }) => {
         const { error } = await supabase.from('screening_bmi').insert([dataToInsert]);
         setIsSubmitting(false);
 
-        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
-        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_BMI); }
+        if (error) { 
+            handleApiError(error, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        } else { 
+            alert('บันทึกข้อมูลสำเร็จ!'); 
+            navigateTo(PAGES.ADMIN_SCREENING_BMI); 
+        }
     };
 
     return (
@@ -1598,8 +1609,12 @@ const AdminAddScreeningWaistPage = ({ navigateTo }) => {
         const dataToInsert = { ...formData, interpretation, waist: parseFloat(formData.waist), height: parseFloat(formData.height) };
         const { error } = await supabase.from('screening_waist').insert([dataToInsert]);
         setIsSubmitting(false);
-        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
-        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_WAIST); }
+        if (error) { 
+            handleApiError(error, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        } else { 
+            alert('บันทึกข้อมูลสำเร็จ!'); 
+            navigateTo(PAGES.ADMIN_SCREENING_WAIST); 
+        }
     };
 
     return (
@@ -1629,8 +1644,12 @@ const AdminAddScreeningBpPage = ({ navigateTo }) => {
         const dataToInsert = { ...formData, interpretation, systolic: sys, diastolic: dia };
         const { error } = await supabase.from('screening_bp').insert([dataToInsert]);
         setIsSubmitting(false);
-        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
-        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_BP); }
+        if (error) { 
+            handleApiError(error, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        } else { 
+            alert('บันทึกข้อมูลสำเร็จ!'); 
+            navigateTo(PAGES.ADMIN_SCREENING_BP); 
+        }
     };
 
     return (
@@ -1659,8 +1678,12 @@ const AdminAddScreeningSugarPage = ({ navigateTo }) => {
         const dataToInsert = { ...formData, interpretation, sugar_level: level };
         const { error } = await supabase.from('screening_sugar').insert([dataToInsert]);
         setIsSubmitting(false);
-        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
-        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_SUGAR); }
+        if (error) { 
+            handleApiError(error, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        } else { 
+            alert('บันทึกข้อมูลสำเร็จ!'); 
+            navigateTo(PAGES.ADMIN_SCREENING_SUGAR); 
+        }
     };
 
     return (
@@ -1684,8 +1707,12 @@ const AdminAddScreeningSmokingPage = ({ navigateTo }) => {
         const interpretation = formData.smoking_status === 'ไม่เคยสูบในช่วงชีวิตที่ผ่านมา' ? 'ไม่มีความเสี่ยง' : 'มีความเสี่ยง';
         const { error } = await supabase.from('screening_smoking').insert([{ ...formData, interpretation }]);
         setIsSubmitting(false);
-        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
-        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_SMOKING); }
+        if (error) { 
+            handleApiError(error, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        } else { 
+            alert('บันทึกข้อมูลสำเร็จ!'); 
+            navigateTo(PAGES.ADMIN_SCREENING_SMOKING); 
+        }
     };
 
     return (
@@ -1706,8 +1733,12 @@ const AdminAddScreeningAlcoholPage = ({ navigateTo }) => {
         const interpretation = formData.alcohol_status === 'ไม่เคยดื่มเลยในช่วงชีวิตที่ผ่านมา' ? 'ไม่มีความเสี่ยง' : 'มีความเสี่ยง';
         const { error } = await supabase.from('screening_alcohol').insert([{ ...formData, interpretation }]);
         setIsSubmitting(false);
-        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
-        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_ALCOHOL); }
+        if (error) { 
+            handleApiError(error, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        } else { 
+            alert('บันทึกข้อมูลสำเร็จ!'); 
+            navigateTo(PAGES.ADMIN_SCREENING_ALCOHOL); 
+        }
     };
 
     return (
@@ -1728,8 +1759,12 @@ const AdminAddScreeningDepressionPage = ({ navigateTo }) => {
         const interpretation = formData.q1_sad === 'มี' || formData.q2_bored === 'มี' ? 'มีความเสี่ยง' : 'ไม่มีความเสี่ยง';
         const { error } = await supabase.from('screening_depression').insert([{ ...formData, interpretation }]);
         setIsSubmitting(false);
-        if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); } 
-        else { alert('บันทึกข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_DEPRESSION); }
+        if (error) { 
+            handleApiError(error, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        } else { 
+            alert('บันทึกข้อมูลสำเร็จ!'); 
+            navigateTo(PAGES.ADMIN_SCREENING_DEPRESSION); 
+        }
     };
     
     return (
@@ -1751,7 +1786,7 @@ const GenericEditScreeningPage = ({ navigateTo, params, backPage, tableName, Add
             setLoading(true);
             const { data, error } = await supabase.from(tableName).select('*').eq('id', params.id).single();
             if (error) {
-                alert('ไม่พบข้อมูลที่ต้องการแก้ไข: ' + error.message);
+                handleApiError(error, 'ไม่พบข้อมูลที่ต้องการแก้ไข');
                 navigateTo(backPage);
             } else {
                 // Ensure date is in YYYY-MM-DD format for the input
@@ -2036,7 +2071,10 @@ const App = () => {
                 useEffect(() => {
                     const fetchRecord = async () => {
                         const { data, error } = await supabase.from('screening_bmi').select('*').eq('id', params.id).single();
-                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_BMI); }
+                        if (error) { 
+                            handleApiError(error, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+                            navigateTo(PAGES.ADMIN_SCREENING_BMI); 
+                        }
                         else { 
                             if (data.screening_date) {
                                 data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
@@ -2065,8 +2103,12 @@ const App = () => {
 
                     const { error } = await supabase.from('screening_bmi').update({ ...formData, bmi, interpretation, weight: weightKg, height: parseFloat(formData.height) }).eq('id', params.id);
                     setIsSubmitting(false);
-                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
-                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_BMI); }
+                    if (error) { 
+                        handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
+                    } else { 
+                        alert('แก้ไขข้อมูลสำเร็จ!'); 
+                        navigateTo(PAGES.ADMIN_SCREENING_BMI); 
+                    }
                 };
 
                 if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
@@ -2087,7 +2129,10 @@ const App = () => {
                  useEffect(() => {
                     const fetchRecord = async () => {
                         const { data, error } = await supabase.from('screening_waist').select('*').eq('id', params.id).single();
-                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_WAIST); }
+                        if (error) { 
+                            handleApiError(error, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+                            navigateTo(PAGES.ADMIN_SCREENING_WAIST); 
+                        }
                         else { 
                              if (data.screening_date) {
                                 data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
@@ -2104,8 +2149,12 @@ const App = () => {
                     const interpretation = parseFloat(formData.waist) > (parseFloat(formData.height) / 2) ? 'เกินเกณฑ์' : 'ไม่เกินเกณฑ์';
                     const { error } = await supabase.from('screening_waist').update({ ...formData, interpretation, waist: parseFloat(formData.waist), height: parseFloat(formData.height) }).eq('id', params.id);
                     setIsSubmitting(false);
-                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
-                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_WAIST); }
+                    if (error) { 
+                        handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
+                    } else { 
+                        alert('แก้ไขข้อมูลสำเร็จ!'); 
+                        navigateTo(PAGES.ADMIN_SCREENING_WAIST); 
+                    }
                 };
                 if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
                 return (
@@ -2124,7 +2173,10 @@ const App = () => {
                  useEffect(() => {
                     const fetchRecord = async () => {
                         const { data, error } = await supabase.from('screening_bp').select('*').eq('id', params.id).single();
-                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_BP); }
+                        if (error) { 
+                            handleApiError(error, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+                            navigateTo(PAGES.ADMIN_SCREENING_BP); 
+                        }
                         else { 
                              if (data.screening_date) {
                                 data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
@@ -2145,8 +2197,12 @@ const App = () => {
                     if (sys >= 140 || dia >= 90) interpretation = 'สงสัยป่วย';
                     const { error } = await supabase.from('screening_bp').update({ ...formData, interpretation, systolic: sys, diastolic: dia }).eq('id', params.id);
                     setIsSubmitting(false);
-                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
-                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_BP); }
+                    if (error) { 
+                        handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
+                    } else { 
+                        alert('แก้ไขข้อมูลสำเร็จ!'); 
+                        navigateTo(PAGES.ADMIN_SCREENING_BP); 
+                    }
                 };
                 if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
                 return (
@@ -2165,7 +2221,10 @@ const App = () => {
                  useEffect(() => {
                     const fetchRecord = async () => {
                         const { data, error } = await supabase.from('screening_sugar').select('*').eq('id', params.id).single();
-                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_SUGAR); }
+                        if (error) { 
+                            handleApiError(error, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+                            navigateTo(PAGES.ADMIN_SCREENING_SUGAR); 
+                        }
                         else { 
                              if (data.screening_date) {
                                 data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
@@ -2185,8 +2244,12 @@ const App = () => {
                     if (level >= 126) interpretation = 'สงสัยป่วย';
                     const { error } = await supabase.from('screening_sugar').update({ ...formData, interpretation, sugar_level: level }).eq('id', params.id);
                     setIsSubmitting(false);
-                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
-                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_SUGAR); }
+                    if (error) { 
+                        handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
+                    } else { 
+                        alert('แก้ไขข้อมูลสำเร็จ!'); 
+                        navigateTo(PAGES.ADMIN_SCREENING_SUGAR); 
+                    }
                 };
                 if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
                 return (
@@ -2205,7 +2268,10 @@ const App = () => {
                  useEffect(() => {
                     const fetchRecord = async () => {
                         const { data, error } = await supabase.from('screening_smoking').select('*').eq('id', params.id).single();
-                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_SMOKING); }
+                        if (error) { 
+                            handleApiError(error, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+                            navigateTo(PAGES.ADMIN_SCREENING_SMOKING); 
+                        }
                         else {
                              if (data.screening_date) {
                                 data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
@@ -2222,8 +2288,12 @@ const App = () => {
                     const interpretation = formData.smoking_status === 'ไม่เคยสูบในช่วงชีวิตที่ผ่านมา' ? 'ไม่มีความเสี่ยง' : 'มีความเสี่ยง';
                     const { error } = await supabase.from('screening_smoking').update({ ...formData, interpretation }).eq('id', params.id);
                     setIsSubmitting(false);
-                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
-                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_SMOKING); }
+                    if (error) { 
+                        handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
+                    } else { 
+                        alert('แก้ไขข้อมูลสำเร็จ!'); 
+                        navigateTo(PAGES.ADMIN_SCREENING_SMOKING); 
+                    }
                 };
                 if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
                 return (
@@ -2239,7 +2309,10 @@ const App = () => {
                  useEffect(() => {
                     const fetchRecord = async () => {
                         const { data, error } = await supabase.from('screening_alcohol').select('*').eq('id', params.id).single();
-                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_ALCOHOL); }
+                        if (error) { 
+                            handleApiError(error, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+                            navigateTo(PAGES.ADMIN_SCREENING_ALCOHOL); 
+                        }
                         else { 
                             if (data.screening_date) {
                                 data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
@@ -2256,8 +2329,12 @@ const App = () => {
                     const interpretation = formData.alcohol_status === 'ไม่เคยดื่มเลยในช่วงชีวิตที่ผ่านมา' ? 'ไม่มีความเสี่ยง' : 'มีความเสี่ยง';
                     const { error } = await supabase.from('screening_alcohol').update({ ...formData, interpretation }).eq('id', params.id);
                     setIsSubmitting(false);
-                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
-                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_ALCOHOL); }
+                    if (error) { 
+                        handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
+                    } else { 
+                        alert('แก้ไขข้อมูลสำเร็จ!'); 
+                        navigateTo(PAGES.ADMIN_SCREENING_ALCOHOL); 
+                    }
                 };
                 if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
                 return (
@@ -2273,7 +2350,10 @@ const App = () => {
                  useEffect(() => {
                     const fetchRecord = async () => {
                         const { data, error } = await supabase.from('screening_depression').select('*').eq('id', params.id).single();
-                        if (error) { alert('ไม่พบข้อมูล'); navigateTo(PAGES.ADMIN_SCREENING_DEPRESSION); }
+                        if (error) { 
+                            handleApiError(error, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+                            navigateTo(PAGES.ADMIN_SCREENING_DEPRESSION); 
+                        }
                         else { 
                             if (data.screening_date) {
                                 data.screening_date = new Date(data.screening_date).toISOString().split('T')[0];
@@ -2290,8 +2370,12 @@ const App = () => {
                     const interpretation = formData.q1_sad === 'มี' || formData.q2_bored === 'มี' ? 'มีความเสี่ยง' : 'ไม่มีความเสี่ยง';
                     const { error } = await supabase.from('screening_depression').update({ ...formData, interpretation }).eq('id', params.id);
                     setIsSubmitting(false);
-                    if (error) { alert(`เกิดข้อผิดพลาด: ${error.message}`); }
-                    else { alert('แก้ไขข้อมูลสำเร็จ!'); navigateTo(PAGES.ADMIN_SCREENING_DEPRESSION); }
+                    if (error) { 
+                        handleApiError(error, 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
+                    } else { 
+                        alert('แก้ไขข้อมูลสำเร็จ!'); 
+                        navigateTo(PAGES.ADMIN_SCREENING_DEPRESSION); 
+                    }
                 };
                 if (!formData) return <p style={{textAlign: 'center', padding: '2rem'}}>กำลังโหลด...</p>;
                 return (
